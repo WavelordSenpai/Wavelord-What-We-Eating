@@ -1,1 +1,55 @@
+name: Build APK
 
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install deps
+        run: npm install
+
+      - name: Add Android platform if missing
+        run: |
+          if [ ! -d "android" ]; then npx cap add android; fi
+          npx cap sync android
+
+      - name: Copy overlay files into Android project
+        run: |
+          mkdir -p android/app/src/main/java/com/wavelord/whatweeating
+          cp overlay/MainActivity.java android/app/src/main/java/com/wavelord/whatweeating/MainActivity.java || true
+          cp overlay/FloatingBuddy.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddy.java || true
+          cp overlay/FloatingBuddyService.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddyService.java || true
+          cp overlay/AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: what-we-eating-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
