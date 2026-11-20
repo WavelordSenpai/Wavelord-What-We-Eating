@@ -1,48 +1,69 @@
 package com.wavelord.whatweeating;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.PixelFormat;
+import android.os.Build;
 import android.os.IBinder;
-import android.view.Gravity;
-import android.view.WindowManager;
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
 
 public class FloatingBuddyService extends Service {
 
-    private WindowManager windowManager;
-    private FloatingBuddy floatingBuddy;
+    private static final String CHANNEL_ID = "wavelord_buddy";
+    private FloatingBuddy buddy;
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
+    public void onCreate() {
+        super.onCreate();
+        createNotificationChannel();
+        startForeground(1, buildNotification());
+        buddy = new FloatingBuddy(this);
+        buddy.show();
+    }
+
+    private Notification buildNotification() {
+        return new NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("What We Eating?")
+            .setContentText("Wave Buddy is active 🌊")
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setOngoing(true)
+            .build();
+    }
+
+    private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                CHANNEL_ID,
+                "Wave Buddy",
+                NotificationManager.IMPORTANCE_LOW
+            );
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
+        }
     }
 
     @Override
-    public int onCreate() {
-        super.onCreate();
-
-        windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
-
-        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-            180,
-            180,
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            PixelFormat.TRANSLUCENT
-        );
-        params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 100;
-        params.y = 300;
-
-        floatingBuddy = new FloatingBuddy(this, windowManager, params);
-        windowManager.addView(floatingBuddy, params);
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (floatingBuddy != null) {
-            try { windowManager.removeView(floatingBuddy); } catch (Exception e) {}
+        if (buddy != null) {
+            buddy.hide();
+            buddy = null;
         }
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 }
