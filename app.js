@@ -508,7 +508,6 @@ document.addEventListener('click', (e)=>{
   if(act==='rouletteSpin'){ roulette(); return; }
   if(act==='rouletteClose'){
     $('#rouletteBox').classList.add('hidden');
-    const rid=$('#rouletteBox').dataset.id; if(rid) renderDetail(rid);
     return;
   }
 });
