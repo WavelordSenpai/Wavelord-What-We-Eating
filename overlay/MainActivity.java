@@ -10,8 +10,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // Ask for overlay permission once, then start buddy
         if (!Settings.canDrawOverlays(this)) {
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                 Uri.parse("package:" + getPackageName()));
@@ -22,13 +20,11 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    public void onResume() { // ✅ FIXED - was protected, now public
+    public void onResume() { // ✅ was protected
         super.onResume();
-        // If user just granted permission, start buddy
         if (Settings.canDrawOverlays(this)) {
-            try {
-                startService(new Intent(this, FloatingBuddyService.class));
-            } catch (Exception e) { e.printStackTrace(); }
+            try { startService(new Intent(this, FloatingBuddyService.class)); }
+            catch (Exception e) { e.printStackTrace(); }
         }
     }
 }
