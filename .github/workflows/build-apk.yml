@@ -28,6 +28,18 @@ jobs:
           npm install
           npm install --save-dev typescript
 
+      - name: Build www folder for Capacitor
+        run: |
+          rm -rf www
+          mkdir -p www/assets
+          cp index.html www/ || true
+          cp app.js www/ || true
+          cp style.css www/ || true
+          cp sw.js www/ || true
+          cp manifest.json www/ || true
+          cp -r assets/* www/assets/ || true
+          ls -R www
+
       - name: Add Android platform if missing
         run: |
           if [ ! -d "android" ]; then npx cap add android; fi
