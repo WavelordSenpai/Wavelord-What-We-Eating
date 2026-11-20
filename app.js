@@ -35,7 +35,7 @@ function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f
 let toastT;
 function toast(msg){let el=$('#toast');if(!el){el=document.createElement('div');el.id='toast';el.style.cssText='position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;border:1px solid #444;padding:10px 14px;border-radius:999px;z-index:999;font-size:.9rem';document.body.appendChild(el)}el.textContent=msg;el.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>el.style.display='none',2200)}
 
-/* ===== ADMIN MODE — default OFF = view-only for public ===== */
+/* ===== ADMIN MODE ===== */
 let IS_ADMIN = sessionStorage.getItem('wwe_admin') === '1';
 function setAdmin(on){
   IS_ADMIN = !!on;
@@ -44,9 +44,7 @@ function setAdmin(on){
   updateAdminUI();
   toast(on ? 'Admin mode ON — you can edit' : 'Admin mode OFF — view only');
 }
-function updateAdminUI(){
-  document.body.classList.toggle('is-admin', IS_ADMIN);
-}
+function updateAdminUI(){ document.body.classList.toggle('is-admin', IS_ADMIN); }
 function requireAdmin(){
   if(!IS_ADMIN){ toast('View only — ask Wavelord to edit this'); return false; }
   return true;
@@ -76,7 +74,7 @@ const STARTER_SPOTS=[
 ];
 let SPOTS = Store.spots();
 if(!SPOTS){SPOTS=STARTER_SPOTS;Store.saveSpots(SPOTS)}
-let STATE={view:'home',q:'',area:'',price:'',sort:'rec',openOnly:false,craving:'',near:null,currentId:null,vote:{q:'What we eating tonight?',opts:[],votes:{}},editingPhotos:[]};
+let STATE={view:'home',q:'',area:'',price:'',sort:'rec',openOnly:false,craving:'',near:null,currentId:null,vote:{q:'What we eating tonight?',opts:[],votes:{}},editingPhotos:[],obStep:0};
 
 /* PART 2 — PURE LOGIC */
 const CAT_RULES=[
@@ -198,7 +196,7 @@ function renderDetail(id){
   go('detail');
 }
 
-/* PART 4 — ADD / EDIT • SCAN • PASTE • VOICE — APPEND, NEVER REPLACE */
+/* PART 4 — ADD / EDIT • SCAN • PASTE • VOICE */
 function fillAreaSelects(){
   const a2=$('#fArea2');if(a2)a2.innerHTML=AREAS.map(a=>`<option>${a}</option>`).join('');
   const ca=$('#cArea');if(ca)ca.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');
@@ -218,7 +216,6 @@ function openAdd(id){
 function collectMenu(){
   return $$('.menuRow').map(r=>({name:$('.mName',r).value.trim(),price:parseFloat($('.mPrice',r).value)||0,cat:$('.mCat',r).value})).filter(i=>i.name&&i.price>0).map(i=>({...i,cat:i.cat==='Other'?categorize(i.name):i.cat}));
 }
-/* APPEND — merges new items into existing rows, skips duplicates */
 function appendMenuItems(newItems){
   const existing = collectMenu();
   const seen = new Set(existing.map(i=>i.name.toLowerCase().trim()));
@@ -301,4 +298,253 @@ function runBudget(){
   $('#budgetOut').innerHTML=`<div class="sec"><p><b>$${total} for ${people} people = ${money(per)} each.</b></p>${fits.length?fits.map(x=>`<div class="card" data-act="detail" data-id="${x.s.id}"><h3>${esc(x.s.name)}</h3><div class="meta">${esc(x.s.area)} • From ${money(x.cheap)}</div></div>`).join(''):'<p class="sub">Nothing fits that budget — try raising it a bit.</p>'}</div>`;
 }
 function renderFavs(){
-  const favs=SP
+  const favs=SPOTS.filter(s=>Store.favs().has(s.id));
+  $('#favOut').innerHTML=favs.length?favs.map(cardHTML).join(''):'<p class="empty">No favourites yet — tap 🤍 on a spot to save it.</p>';
+}
+function renderSettings(){
+  const st=Store.settings();
+  const big=$('#sBigText'); if(big) big.checked=!!st.bigText;
+  const open=$('#sOpenOnly'); if(open) open.checked=!!st.openOnly;
+  const pa=$('#sPriceAlert'); if(pa) pa.checked=!!st.priceAlert;
+  document.documentElement.style.setProperty('--fs', st.bigText?'1.15':'1');
+}
+function renderAdmin(){
+  const body=$('#adminBody');
+  if(!body) return;
+  body.innerHTML=`<div class="sec"><h3>Spots (${SPOTS.length})</h3>${SPOTS.map(s=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0"><span>${esc(s.name)} • ${esc(s.area)}</span><span><button class="sm" data-act="edit" data-id="${s.id}">Edit</button> <button class="sm" data-act="deleteSpot" data-id="${s.id}">Delete</button></span></div>`).join('')}</div><div class="sec"><h3>Errors (${Store.errors().length})</h3><p class="sub">${Store.errors().slice(0,5).map(e=>esc(e.msg)).join('<br>')||'No errors'}</p></div>`;
+}
+
+/* PART 6 — SPLASH • ONBOARD • BUDDY • ROULETTE */
+const ONBOARD_STEPS=[
+  {em:'🔍',h:'Search what yuh feeling for',p:'Type beef, roti, doubles, pizza — we show the best spots near you.'},
+  {em:'⚖️',h:'Compare before yuh spend',p:'See the cheapest roti, doubles or burger in your area in one table.'},
+  {em:'🌊',h:'Ask Wave Buddy',p:'Tap the 🌊 button anytime. Buddy finds cheap eats, top rated, and open-now spots.'}
+];
+function showOnboardStep(){
+  const s=ONBOARD_STEPS[STATE.obStep]||ONBOARD_STEPS[0];
+  const em=$('#obEm'),h=$('#obH'),p=$('#obP'),btn=$('#obBtn');
+  if(em) em.textContent=s.em;
+  if(h) h.textContent=s.h;
+  if(p) p.textContent=s.p;
+  if(btn) btn.textContent = STATE.obStep < ONBOARD_STEPS.length-1 ? 'Next' : 'Start Eating 🍔';
+  $$('#onboard .dots i').forEach((d,i)=>d.classList.toggle('on', i===STATE.obStep));
+}
+function hideSplash(){
+  const s=$('#splash');
+  if(s) s.classList.add('hidden');
+  const ob=$('#onboard');
+  if(Store.settings().onboarded){
+    if(ob) ob.classList.remove('show');
+  } else {
+    STATE.obStep=0;
+    showOnboardStep();
+    if(ob) ob.classList.add('show');
+  }
+  try{ Store.saveSettings({lastVisit:nowISO()}); }catch(e){}
+}
+function hideOnboard(){
+  const ob=$('#onboard');
+  if(ob) ob.classList.remove('show');
+  Store.saveSettings({onboarded:true});
+}
+function buddyToggle(){
+  const b=$('#buddy');
+  if(!b) return;
+  const willOpen=b.classList.contains('hidden');
+  b.classList.toggle('hidden');
+  if(willOpen && !$('#buddyMsgs').dataset.done){
+    $('#buddyMsgs').dataset.done='1';
+    buddySay('Wah yuh feeling for? Try "cheap doubles" or "best roti in Tunapuna" 🌊');
+  }
+}
+function buddySay(text){
+  const box=$('#buddyMsgs');
+  if(!box) return;
+  box.insertAdjacentHTML('beforeend', `<div class="msg bot">${esc(text)}</div>`);
+  box.scrollTop=box.scrollHeight;
+}
+function buddySend(text){
+  const input=$('#buddyText');
+  const q=(text||input.value||'').trim();
+  if(!q) return;
+  const box=$('#buddyMsgs');
+  if(box) box.insertAdjacentHTML('beforeend', `<div class="msg me">${esc(q)}</div>`);
+  if(input) input.value='';
+  const lower=q.toLowerCase();
+  let found=null;
+  if(lower.includes('cheap')||lower.includes('doubles')) found=[...SPOTS].sort((a,b)=>(cheapestFor(a,'')||999)-(cheapestFor(b,'')||999))[0];
+  else if(lower.includes('roti')) found=SPOTS.find(s=>(s.menu||[]).some(i=>/roti/i.test(i.name)));
+  else if(lower.includes('burger')||lower.includes('beef')) found=SPOTS.find(s=>(s.menu||[]).some(i=>/burger|beef/i.test(i.name)));
+  else found=SPOTS.find(s=>s.name.toLowerCase().includes(lower)||(s.menu||[]).some(i=>i.name.toLowerCase().includes(lower)))||[...SPOTS].sort((a,b)=>scoreSpot(b)-scoreSpot(a))[0];
+  if(found){
+    buddySay(`Try ${found.name} in ${found.area} — from ${money(cheapestFor(found,'')||0)} • ⭐ ${found.rating}`);
+    setTimeout(()=>renderDetail(found.id), 400);
+  } else {
+    buddySay('Hmm, I doh see that one yet. Try another craving or add the spot!');
+  }
+}
+function roulette(){
+  const open=SPOTS.filter(isOpenNow);
+  const pool=open.length?open:SPOTS;
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  if(!pick) return;
+  $('#rouletteTitle').textContent='🎲 '+pick.name;
+  $('#rouletteText').textContent=`${pick.area} • From ${money(cheapestFor(pick,'')||0)} • ⭐ ${pick.rating}`;
+  $('#rouletteBox').classList.remove('hidden');
+  $('#rouletteBox').dataset.id=pick.id;
+}
+
+/* PART 7 — GLOBAL CLICK HANDLER + INIT */
+document.addEventListener('click', (e)=>{
+  const btn=e.target.closest('[data-act]');
+  if(!btn) return;
+  const act=btn.dataset.act, id=btn.dataset.id, v=btn.dataset.v;
+
+  if(act==='skipSplash'){ hideSplash(); return; }
+  if(act==='obNext'){
+    if(STATE.obStep < ONBOARD_STEPS.length-1){ STATE.obStep++; showOnboardStep(); }
+    else hideOnboard();
+    return;
+  }
+  if(act==='obSkip'){ hideOnboard(); return; }
+  if(act==='go'){ go(v); return; }
+  if(act==='detail'){ renderDetail(id); return; }
+  if(act==='fav'){
+    const added=Store.toggleFav(id);
+    toast(added?'Saved to favourites ❤️':'Removed from favourites');
+    renderHome(); if(STATE.view==='favs') renderFavs(); if(STATE.view==='detail') renderDetail(id);
+    return;
+  }
+  if(act==='crave'){ STATE.craving = STATE.craving===v?'':v; renderHome(); return; }
+  if(act==='showMore'){ STATE.pageSize=(STATE.pageSize||10)+10; renderHome(); return; }
+  if(act==='toggleOpen'){ STATE.openOnly=!STATE.openOnly; $('#openBtn').classList.toggle('on', STATE.openOnly); renderHome(); return; }
+  if(act==='nearMe'){ toast('Near me — showing all areas for now'); renderHome(); return; }
+  if(act==='edit'){ openAdd(id); return; }
+  if(act==='deleteSpot'){
+    if(!requireAdmin()) return;
+    if(confirm('Delete this spot?')){ SPOTS=SPOTS.filter(s=>s.id!==id); Store.saveSpots(SPOTS); renderAdmin(); toast('Deleted'); }
+    return;
+  }
+  if(act==='share'){
+    const s=SPOTS.find(x=>x.id===id); if(!s) return;
+    const txt=`${s.name} in ${s.area} — ${APP.name} by Wavelord`;
+    if(navigator.share) navigator.share({title:s.name, text:txt, url:location.href}).catch(()=>{});
+    else { navigator.clipboard?.writeText(txt); toast('Link copied'); }
+    return;
+  }
+  if(act==='exportMd'){
+    const s=SPOTS.find(x=>x.id===id); if(!s) return;
+    const blob=new Blob([toMarkdown(s)],{type:'text/markdown'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=s.name.replace(/\W+/g,'-')+'.md'; a.click();
+    return;
+  }
+  if(act==='addMenuRow'){ $('#menuRows').insertAdjacentHTML('beforeend', menuRowHTML()); return; }
+  if(act==='delMenuRow'){ btn.closest('.menuRow')?.remove(); return; }
+  if(act==='scanOpen'){ openScan(); return; }
+  if(act==='pasteOpen'){ openPaste(); return; }
+  if(act==='voiceOpen'){ openVoice(); return; }
+  if(act==='doPaste'){
+    const txt=$('#pasteText').value||'';
+    const parsed=parseMenuText(txt,{});
+    const res=appendMenuItems(parsed.items);
+    $('#pasteMsg').textContent=`Added ${res.added} items — old menu kept (${res.skipped} skipped)`;
+    return;
+  }
+  if(act==='doScan'){ doScan(); return; }
+  if(act==='doVoice'){
+    const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!Rec) return;
+    const rec=new Rec(); rec.lang='en-US';
+    rec.onresult=(ev)=>{
+      const t=ev.results[0][0].transcript;
+      $('#voiceMsg').textContent='Heard: '+t;
+      const parsed=parseMenuText(t,{});
+      appendMenuItems(parsed.items);
+      toast('Voice added to menu');
+    };
+    rec.onerror=()=>{ $('#voiceMsg').textContent='Voice failed — try typing instead'; };
+    rec.start();
+    return;
+  }
+  if(act==='closeModal'){ closeModal(); return; }
+  if(act==='runCompare'){ runCompare(); return; }
+  if(act==='runBudget'){ runBudget(); return; }
+  if(act==='addVoteOpt'){
+    const inp=$('#vOpt'); const val=(inp.value||'').trim(); if(!val) return;
+    STATE.vote.opts.push(val); inp.value='';
+    $('#voteOpts').innerHTML=STATE.vote.opts.map(o=>`<button class="chip" data-act="voteFor" data-v="${esc(o)}">${esc(o)}</button>`).join('');
+    return;
+  }
+  if(act==='voteFor'){ STATE.vote.votes[v]=(STATE.vote.votes[v]||0)+1; renderVote(); return; }
+  if(act==='startVote'){ renderVote(); return; }
+  if(act==='shareVote'){ toast('Vote link copied — share it with family'); return; }
+  if(act==='submitClaim'){
+    $('#claimMsg').textContent='Claim received — Wavelord will check it. Thanks!';
+    return;
+  }
+  if(act==='showTutorial'){ STATE.obStep=0; showOnboardStep(); $('#onboard').classList.add('show'); return; }
+  if(act==='exportBackup'){
+    const blob=new Blob([JSON.stringify({spots:SPOTS,exported:nowISO()},null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='what-we-eating-backup.json'; a.click();
+    return;
+  }
+  if(act==='importBackup'){ $('#importFile').click(); return; }
+  if(act==='reportProblem'){
+    const errs=Store.errors();
+    openModal(`<h3>🐛 Report a problem</h3><p class="sub">Copy this and send to Wavelord:</p><textarea rows="6">${esc(errs.slice(0,5).map(e=>e.msg).join('\n')||'No errors logged')}</textarea>`);
+    return;
+  }
+  if(act==='adminLogin'){
+    const pass=$('#adminPass').value;
+    if(pass===APP.adminPassword){ setAdmin(true); $('#adminLogin').classList.add('hidden'); $('#adminBody').classList.remove('hidden'); renderAdmin(); }
+    else toast('Wrong password');
+    return;
+  }
+  if(act==='adminLogout'){ setAdmin(false); go('home'); return; }
+  if(act==='buddyToggle'){ buddyToggle(); return; }
+  if(act==='buddySend'){ buddySend(); return; }
+  if(act==='buddyQuick'){ buddySend(v); return; }
+  if(act==='roulette'){ roulette(); return; }
+  if(act==='rouletteSpin'){ roulette(); return; }
+  if(act==='rouletteClose'){
+    $('#rouletteBox').classList.add('hidden');
+    const rid=$('#rouletteBox').dataset.id; if(rid) renderDetail(rid);
+    return;
+  }
+});
+
+function renderVote(){
+  const total=Object.values(STATE.vote.votes).reduce((a,b)=>a+b,0)||1;
+  $('#voteOut').innerHTML=`<div class="sec"><h3>${esc($('#vQ').value||STATE.vote.q)}</h3>${STATE.vote.opts.map(o=>{const c=STATE.vote.votes[o]||0;return `<div style="margin-top:10px"><div class="row" style="justify-content:space-between"><span>${esc(o)}</span><span>${c} votes</span></div><div class="voteBar"><i style="width:${Math.round(c/total*100)}%"></i></div></div>`}).join('')||'<p class="sub">Add options to start voting.</p>'}</div>`;
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  updateAdminUI();
+  fillAreaSelects();
+  renderHome();
+  renderSettings();
+  const q=$('#q'); if(q) q.addEventListener('input', debounce(()=>{ STATE.q=q.value.trim(); renderList(); }, 200));
+  const fa=$('#fArea'); if(fa) fa.addEventListener('change', ()=>{ STATE.area=fa.value; renderHome(); });
+  const fp=$('#fPrice'); if(fp) fp.addEventListener('change', ()=>{ STATE.price=fp.value; renderHome(); });
+  const fs=$('#fSort'); if(fs) fs.addEventListener('change', ()=>{ STATE.sort=fs.value; renderHome(); });
+  const addForm=$('#addForm'); if(addForm) addForm.addEventListener('submit', saveSpot);
+  const tc=$('#tCat'); if(tc) tc.addEventListener('change', renderTop10);
+  const buddyText=$('#buddyText'); if(buddyText) buddyText.addEventListener('keydown', (e)=>{ if(e.key==='Enter') buddySend(); });
+  const sBig=$('#sBigText'); if(sBig) sBig.addEventListener('change', ()=>{ Store.saveSettings({bigText:sBig.checked}); renderSettings(); });
+  const sOpen=$('#sOpenOnly'); if(sOpen) sOpen.addEventListener('change', ()=>{ Store.saveSettings({openOnly:sOpen.checked}); renderHome(); });
+  const sPrice=$('#sPriceAlert'); if(sPrice) sPrice.addEventListener('change', ()=>{ Store.saveSettings({priceAlert:sPrice.checked}); });
+  const imp=$('#importFile'); if(imp) imp.addEventListener('change', (e)=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader(); r.onload=()=>{ try{ const j=JSON.parse(r.result); if(j.spots){ SPOTS=j.spots; Store.saveSpots(SPOTS); renderHome(); toast('Backup restored'); } }catch(err){ toast('Restore failed'); } }; r.readAsText(f);
+  });
+  const fPhotos=$('#fPhotos'); if(fPhotos) fPhotos.addEventListener('change', ()=>{
+    const files=[...fPhotos.files].slice(0, APP.maxPhotos);
+    STATE.editingPhotos=[];
+    $('#photoPrev').innerHTML='';
+    files.forEach(f=>{
+      const reader=new FileReader();
+      reader.onload=()=>{ STATE.editingPhotos.push(reader.result); $('#photoPrev').insertAdjacentHTML('beforeend', `<img src="${reader.result}" style="width:80px;height:60px;object-fit:cover;border-radius:8px">`); };
+      reader.readAsDataURL(f);
+    });
+  });
+});
