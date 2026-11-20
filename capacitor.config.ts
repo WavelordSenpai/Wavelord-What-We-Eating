@@ -3,12 +3,10 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.wavelord.whatweeating',
   appName: 'What We Eating?',
-  webDir: '.',
+  webDir: 'www',
+  backgroundColor: '#0f0f12',
   server: {
     androidScheme: 'https'
-  },
-  android: {
-    allowMixedContent: false
   }
 };
 
