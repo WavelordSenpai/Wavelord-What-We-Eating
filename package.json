@@ -1,21 +1,19 @@
 {
   "name": "what-we-eating",
-  "version": "2.1.0",
-  "description": "What We Eating? by Wavelord — family food finder for Trinidad & Tobago (PWA + Capacitor APK)",
+  "version": "1.0.0",
+  "description": "What We Eating? by Wavelord - Family food finder for Trinidad & Tobago",
   "private": true,
+  "type": "commonjs",
   "scripts": {
-    "dev": "npx netlify dev",
-    "cap:add": "npx cap add android",
-    "cap:sync": "npx cap sync",
-    "cap:open": "npx cap open android"
+    "build": "echo \"No build step - static PWA\"",
+    "sync": "npx cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
-    "@capacitor/app": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
     "@capacitor/core": "^6.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.0.0",
-    "netlify-cli": "^17.0.0"
+    "typescript": "^5.5.0"
   }
 }
