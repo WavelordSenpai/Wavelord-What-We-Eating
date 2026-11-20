@@ -28,6 +28,15 @@ jobs:
           npm install
           npm install --save-dev typescript
 
+      - name: Verify Capacitor Config
+        run: |
+          echo "--- capacitor.config.ts ---"
+          cat capacitor.config.ts
+          echo "--- check for old json ---"
+          ls -la capacitor.config.* || true
+          rm -f capacitor.config.json
+          echo "Deleted capacitor.config.json if it existed"
+
       - name: Build www folder for Capacitor
         run: |
           rm -rf www
@@ -38,7 +47,9 @@ jobs:
           cp sw.js www/ || true
           cp manifest.json www/ || true
           cp -r assets/* www/assets/ || true
+          echo "--- www contents ---"
           ls -R www
+          test -f www/index.html || (echo "ERROR: www/index.html missing" && exit 1)
 
       - name: Add Android platform if missing
         run: |
