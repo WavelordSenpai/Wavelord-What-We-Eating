@@ -5,15 +5,12 @@ import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.os.IBinder;
 import android.view.Gravity;
-import android.view.MotionEvent;
-import android.view.View;
 import android.view.WindowManager;
-import android.widget.ImageView;
 
 public class FloatingBuddyService extends Service {
 
     private WindowManager windowManager;
-    private View floatingView;
+    private FloatingBuddy floatingBuddy;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -26,12 +23,7 @@ public class FloatingBuddyService extends Service {
 
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        ImageView buddy = new ImageView(this);
-        buddy.setImageResource(android.R.drawable.ic_dialog_info);
-        buddy.setBackgroundResource(android.R.drawable.btn_default);
-        buddy.setPadding(24, 24, 24, 24);
-
-        final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams(
             180,
             180,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
@@ -42,52 +34,15 @@ public class FloatingBuddyService extends Service {
         params.x = 100;
         params.y = 300;
 
-        floatingView = buddy;
-
-        buddy.setOnTouchListener(new View.OnTouchListener() {
-            private int initialX, initialY;
-            private float initialTouchX, initialTouchY;
-            private long downTime;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        downTime = System.currentTimeMillis();
-                        initialX = params.x;
-                        initialY = params.y;
-                        initialTouchX = event.getRawX();
-                        initialTouchY = event.getRawY();
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                        params.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        windowManager.updateViewLayout(floatingView, params);
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        // Tap = open app
-                        if (System.currentTimeMillis() - downTime < 200) {
-                            Intent launch = getPackageManager().getLaunchIntentForPackage(getPackageName());
-                            if (launch != null) {
-                                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                                startActivity(launch);
-                            }
-                        }
-                        return true;
-                }
-                return false;
-            }
-        });
-
-        windowManager.addView(floatingView, params);
-        return START_STICKY;
+        floatingBuddy = new FloatingBuddy(this, windowManager, params);
+        windowManager.addView(floatingBuddy, params);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (floatingView != null) {
-            try { windowManager.removeView(floatingView); } catch (Exception e) {}
+        if (floatingBuddy != null) {
+            try { windowManager.removeView(floatingBuddy); } catch (Exception e) {}
         }
     }
-  }
+}
