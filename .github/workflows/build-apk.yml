@@ -23,8 +23,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Install deps
-        run: npm install
+      - name: Install deps + TypeScript
+        run: |
+          npm install
+          npm install --save-dev typescript
 
       - name: Add Android platform if missing
         run: |
