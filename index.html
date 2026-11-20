@@ -1,153 +1,52 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>What We Eating? by Wavelord — Trinidad Food Finder</title>
-<meta name="description" content="What We Eating? by Wavelord — find, scan and compare food spots all over Trinidad & Tobago.">
-<meta name="theme-color" content="#ff4d2e">
-<link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
-<link rel="icon" href="assets/icon-192.png">
-<link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>What We Eating? by Wavelord</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="manifest" href="manifest.json" />
 </head>
 <body>
 
-<div id="splash" aria-label="Welcome">
-  <button id="skipSplash" data-act="skipSplash">Skip ›</button>
-  <div class="stage">
-    <div class="layer b-bot"></div><div class="layer b-pat"></div><div class="layer b-che"></div>
-    <div class="layer b-let"></div><div class="layer b-tom"></div><div class="layer b-top"></div>
-    <div class="steam"><i></i><i></i><i></i></div>
+<!-- SPLASH SCREEN -->
+<div id="splash">
+  <button id="skipBtn" onclick="enterApp()">Skip ›</button>
+
+  <div class="steam">
+    <span></span><span></span><span></span>
   </div>
-  <div id="splashTitle">WHAT WE<br>EATING?</div>
-  <div class="by">BY WAVELORD</div>
-  <button id="tapEat" data-act="skipSplash">TAP TO EAT 🍔</button>
-</div>
 
-<div id="onboard">
-  <div class="em" id="obEm">🔍</div>
-  <h2 id="obH">Search what yuh feeling for</h2>
-  <p id="obP"></p>
-  <div class="dots"><i></i><i></i><i></i></div>
-  <button class="primary big" id="obBtn" data-act="obNext" style="max-width:320px">Next</button>
-  <button class="ghost" data-act="obSkip" style="margin-top:10px">Skip</button>
-</div>
-
-<header id="top">
-  <div class="hrow">
-    <div><h1>🍔 What We Eating?</h1><p>by <b>Wavelord</b> • Trinidad &amp; Tobago food lime finder</p></div>
-    <div style="display:flex;gap:6px">
-      <button class="icon" data-act="go" data-v="favs">❤️</button>
-      <button class="icon" data-act="roulette">🎲</button>
-    </div>
+  <div class="burger">
+    <div class="bun-top"></div>
+    <div class="tomato"></div>
+    <div class="lettuce"></div>
+    <div class="cheese"></div>
+    <div class="patty"></div>
+    <div class="bun-bottom"></div>
   </div>
-  <div class="saved" id="savedLine"></div>
-</header>
 
-<main class="wrap">
-  <section id="v-home" class="view active">
-    <div id="rememberBox"></div>
-    <div class="sec searchBox" style="margin-top:0">
-      <input id="q" type="search" placeholder="Wah yuh feeling for? beef, roti, doubles, pizza…" autocomplete="off">
-      <div class="chips" id="chips"></div>
-      <div class="row">
-        <select id="fArea"></select>
-        <select id="fPrice"><option value="">Any price</option><option value="1">$ Cheap Eats</option><option value="2">$$ Mid</option><option value="3">$$$ Fancy Lime</option></select>
-        <select id="fSort"><option value="rec">Recommended</option><option value="rating">Highest rated</option><option value="low">Lowest price</option></select>
-      </div>
-      <div class="chips"><button class="chip" data-act="nearMe">📍 Near me</button><button class="chip" id="openBtn" data-act="toggleOpen">🕒 Open now</button></div>
-    </div>
-    <div id="specialsSec"></div><div class="sec rec" id="forYou"></div>
-    <div class="sec"><div class="secHead"><h2>⚖️ Compare before yuh spend</h2><button class="sm primary" data-act="go" data-v="compare">Compare</button></div><p class="sub">Pick a craving + area and see the best value spots in a table.</p></div>
-    <div id="trendSec"></div><div id="top10Sec"></div><div id="homeList"></div><div id="homeMore"></div>
-  </section>
+  <h1>WHAT WE<br>EATING?</h1>
+  <p class="by">BY WAVELORD</p>
 
-  <section id="v-detail" class="view"><button class="ghost" data-act="go" data-v="home">‹ Back</button><div id="detailBody"></div></section>
-
-  <section id="v-add" class="view">
-    <h2 id="addTitle">Add a spot</h2>
-    <form id="addForm" class="sec">
-      <input type="hidden" id="fId">
-      <label>Name *<input id="fName" required placeholder="e.g. Uncle Sam's Doubles"></label>
-      <label>Area<select id="fArea2"></select></label>
-      <label>Address / Landmark<input id="fAddr" placeholder="e.g. Corner of Main Rd, Tunapuna"></label>
-      <label>Phone<input id="fPhone" type="tel" placeholder="868-..."></label>
-      <label>Hours <small>(e.g. Mon-Sun 8am-8pm)</small><input id="fHours" placeholder="Mon-Sun 8am-8pm"></label>
-      <label>Price level<select id="fPriceLvl"><option value="1">$ Cheap Eats</option><option value="2" selected>$$ Mid</option><option value="3">$$$ Fancy Lime</option></select></label>
-      <label>Rating (1-5)<input id="fRating" type="number" min="1" max="5" step="0.5" value="4"></label>
-      <label>Notes<textarea id="fNotes" rows="2"></textarea></label>
-      <div class="secHead"><h3>Menu</h3><button type="button" class="sm" data-act="addMenuRow">+ Item</button></div>
-      <div id="menuRows"></div>
-      <div class="row" style="margin-top:10px">
-        <button type="button" class="chip" data-act="scanOpen">📸 Scan menu</button>
-        <button type="button" class="chip" data-act="pasteOpen">📋 Paste menu</button>
-        <button type="button" class="chip" data-act="voiceOpen">🎤 Voice</button>
-      </div>
-      <label>Photos <small>(up to 5)</small><input id="fPhotos" type="file" accept="image/*" multiple></label>
-      <div id="photoPrev" class="row"></div>
-      <div class="row"><button class="primary big" type="submit">Save spot</button><button type="button" class="ghost" data-act="go" data-v="home">Cancel</button></div>
-    </form>
-  </section>
-
-  <section id="v-compare" class="view"><h2>⚖️ Compare</h2><div class="sec"><div class="row"><select id="cCrave"></select><select id="cArea"></select></div><button class="primary" data-act="runCompare" style="margin-top:10px">Compare</button></div><div id="compareOut"></div></section>
-  <section id="v-top10" class="view"><h2>🏆 Top 10</h2><div class="sec"><select id="tCat"></select></div><div id="top10Out"></div></section>
-  <section id="v-budget" class="view"><h2>💰 Budget Lime</h2><div class="sec"><label>Total budget $<input id="bTotal" type="number" value="200"></label><label>People<input id="bPeople" type="number" value="2"></label><button class="primary" data-act="runBudget" style="margin-top:10px">Find fits</button></div><div id="budgetOut"></div></section>
-
-  <section id="v-vote" class="view">
-    <h2>🗳️ Family Vote</h2>
-    <div class="sec">
-      <label>Question<input id="vQ" value="What we eating tonight?"></label>
-      <div class="row"><input id="vOpt" placeholder="Add option (spot name)"><button class="primary" data-act="addVoteOpt">Add</button></div>
-      <div id="voteOpts" class="chips"></div>
-      <div class="row" style="margin-top:10px"><button class="primary" data-act="startVote">Start vote</button><button class="ghost" data-act="shareVote">🔗 Share vote link</button></div>
-    </div>
-    <div id="voteOut"></div>
-  </section>
-
-  <section id="v-favs" class="view"><h2>❤️ Favourites</h2><div id="favOut"></div></section>
-  <section id="v-claim" class="view"><h2>🏪 Claim your spot</h2><div class="sec"><p class="sub">Own a food spot? Claim it to update your menu, hours &amp; specials.</p><label>Spot name<input id="clName"></label><label>Your name<input id="clOwner"></label><label>Phone / WhatsApp<input id="clPhone"></label><button class="primary" data-act="submitClaim" style="margin-top:10px">Submit claim</button><p class="sub" id="claimMsg"></p></div></section>
-
-  <section id="v-settings" class="view">
-    <h2>⚙️ Settings</h2>
-    <div class="sec">
-      <label class="check"><input type="checkbox" id="sBigText"> Big Text</label>
-      <label class="check"><input type="checkbox" id="sOpenOnly"> Show open-now only by default</label>
-      <label class="check"><input type="checkbox" id="sPriceAlert"> Price-drop alerts</label>
-      <div class="row" style="margin-top:12px"><button class="chip" data-act="showTutorial">📖 Show tutorial again</button><button class="chip" data-act="exportBackup">⬇️ Backup</button><button class="chip" data-act="importBackup">⬆️ Restore</button><input type="file" id="importFile" accept=".json" class="hidden"></div>
-      <div class="row"><button class="chip" data-act="go" data-v="claim">🏪 Claim a spot</button><button class="chip" data-act="reportProblem">🐛 Report a problem</button><button class="chip" data-act="go" data-v="admin">🔐 Admin</button><button class="chip" data-act="adminLogout" data-admin-only>🔓 Exit Admin mode</button></div>
-      <p class="sub" id="settingsMsg"></p>
-    </div>
-  </section>
-
-  <section id="v-admin" class="view">
-    <h2>🔐 Admin</h2>
-    <div class="sec" id="adminLogin"><label>Password<input id="adminPass" type="password" inputmode="numeric"></label><button class="primary" data-act="adminLogin" style="margin-top:10px">Unlock</button></div>
-    <div id="adminBody" class="hidden"></div>
-  </section>
-</main>
-
-<nav id="nav">
-  <button data-act="go" data-v="home">🏠<span>Home</span></button>
-  <button data-act="go" data-v="compare">⚖️<span>Compare</span></button>
-  <button data-act="go" data-v="add" data-admin-only>➕<span>Add</span></button>
-  <button data-act="go" data-v="top10">🏆<span>Top 10</span></button>
-  <button data-act="go" data-v="budget">💰<span>Budget</span></button>
-  <button data-act="go" data-v="vote">🗳️<span>Vote</span></button>
-  <button data-act="go" data-v="settings">⚙️<span>Settings</span></button>
-</nav>
-
-<button id="buddyFab" data-act="buddyToggle">🌊</button>
-<div id="buddy" class="hidden">
-  <div class="buddyHead"><b>🌊 Wave Buddy</b><button data-act="buddyToggle">✕</button></div>
-  <div id="buddyMsgs"></div>
-  <div class="buddyInput"><input id="buddyText" placeholder="Wah yuh feeling for?"><button class="primary" data-act="buddySend">Send</button></div>
-  <div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button></div>
+  <button id="tapBtn" onclick="enterApp()">TAP TO EAT 🍔</button>
 </div>
 
-<div id="modal" class="hidden"><div class="modalBox"><button class="modalX" data-act="closeModal">✕</button><div id="modalBody"></div></div></div>
-<div id="rouletteBox" class="hidden"><div class="modalBox"><h2 id="rouletteTitle">🎲</h2><p id="rouletteText"></p><div class="row"><button class="primary" data-act="rouletteSpin">Spin again</button><button class="ghost" data-act="rouletteClose">Close</button></div></div></div>
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+  <header>
+    <h2>🍔 What We Eating?</h2>
+    <p>Find your next meal in Trinidad & Tobago</p>
+  </header>
+
+  <div class="search-box">
+    <input id="searchInput" type="text" placeholder="Search doubles, roti, bake & shark..." />
+    <button onclick="searchFood()">Search</button>
+  </div>
+
+  <div id="results"></div>
+</div>
 
 <script src="app.js"></script>
 </body>
-  </html>
+</html>
