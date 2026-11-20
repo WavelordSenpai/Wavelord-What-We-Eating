@@ -39,6 +39,32 @@
 <div id="buddy" class="hidden"><div class="buddyHead"><div class="buddyTitle"><svg class="buddySvg buddySvgHead" viewBox="0 0 64 64" aria-hidden="true"><ellipse cx="32" cy="56" rx="22" ry="4" fill="rgba(0,0,0,0.25)"/><path d="M10 30 Q10 16 32 16 Q54 16 54 30 Q54 33 50 33 L14 33 Q10 33 10 30 Z" fill="#FFC65C"/><circle cx="22" cy="24" r="1.6" fill="#E8A04A"/><circle cx="32" cy="21" r="1.6" fill="#E8A04A"/><circle cx="42" cy="24" r="1.6" fill="#E8A04A"/><path d="M8 34 Q14 38 20 34 Q26 38 32 34 Q38 38 44 34 Q50 38 56 34 L56 37 Q56 39 53 39 L11 39 Q8 39 8 37 Z" fill="#7CFC9A"/><rect x="9" y="40" width="46" height="6" rx="3" fill="#7A3B12"/><rect x="11" y="47" width="42" height="4" rx="2" fill="#FFD477"/><path d="M12 52 Q12 58 18 58 L46 58 Q52 58 52 52 Q52 51 50 51 L14 51 Q12 51 12 52 Z" fill="#E8A04A"/><circle cx="25" cy="44" r="2.2" fill="#1A1A1A"/><circle cx="39" cy="44" r="2.2" fill="#1A1A1A"/><circle cx="25.8" cy="43.2" r="0.7" fill="#fff"/><circle cx="39.8" cy="43.2" r="0.7" fill="#fff"/><path d="M27 48 Q32 52 37 48" stroke="#1A1A1A" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg><b>Hamburger Buddy</b><span class="buddyDot"></span></div><div class="buddyHeadBtns"><button data-act="buddyMin" title="Minimize">—</button><button data-act="buddyToggle" title="Close">✕</button></div></div><div id="buddyBody"><div id="buddyMsgs"></div><div class="buddyInput"><input id="buddyText" placeholder="Wah yuh feeling for?"><button class="primary" data-act="buddySend">Send</button></div><div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button><button class="chip" data-act="buddyQuick" data-v="What is open now?">Open now</button></div></div><div id="buddyMiniBar" class="hidden" data-act="buddyExpand"><svg class="buddySvg buddySvgMini" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 30 Q10 16 32 16 Q54 16 54 30 Q54 33 50 33 L14 33 Q10 33 10 30 Z" fill="#FFC65C"/><path d="M8 34 Q14 38 20 34 Q26 38 32 34 Q38 38 44 34 Q50 38 56 34 L56 37 Q56 39 53 39 L11 39 Q8 39 8 37 Z" fill="#7CFC9A"/><rect x="9" y="40" width="46" height="6" rx="3" fill="#7A3B12"/><rect x="11" y="47" width="42" height="4" rx="2" fill="#FFD477"/><path d="M12 52 Q12 58 18 58 L46 58 Q52 58 52 52 Q52 51 50 51 L14 51 Q12 51 12 52 Z" fill="#E8A04A"/><circle cx="25" cy="44" r="2.2" fill="#1A1A1A"/><circle cx="39" cy="44" r="2.2" fill="#1A1A1A"/><path d="M27 48 Q32 52 37 48" stroke="#1A1A1A" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>Hamburger Buddy — minimized, tap to open <span>▲</span></div></div>
 <div id="modal" class="hidden"><div class="modalBox"><button class="modalX" data-act="closeModal">✕</button><div id="modalBody"></div></div></div>
 <div id="rouletteBox" class="hidden"><div class="modalBox"><h2 id="rouletteTitle">🎲</h2><p id="rouletteText"></p><div class="row"><button class="primary" data-act="rouletteSpin">Spin again</button><button class="ghost" data-act="rouletteClose">Close</button></div></div></div>
+  <script>
+// EMERGENCY SPLASH FIX — works even if app.js fails / is cached old
+(function(){
+  function forceEnter(){
+    var s=document.getElementById('splash');
+    if(s) s.classList.add('hidden');
+    try{
+      var st=JSON.parse(localStorage.getItem('wwe_settings')||'{}');
+      var ob=document.getElementById('onboard');
+      if(st.onboarded && ob) ob.classList.remove('show');
+    }catch(e){}
+  }
+  try{ if(new URLSearchParams(location.search).get('skip')==='1'){ forceEnter(); } }catch(e){}
+  ['tapEat','skipSplash'].forEach(function(id){
+    var b=document.getElementById(id);
+    if(b){
+      b.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); forceEnter(); });
+      b.addEventListener('touchend', function(e){ e.preventDefault(); forceEnter(); });
+    }
+  });
+  // SAFETY NET: auto-enter after 8 seconds so you can NEVER get stuck
+  setTimeout(forceEnter, 8000);
+})();
+</script>
 <script src="app.js"></script>
+</body>
+</html>
 </body>
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      </html>
