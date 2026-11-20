@@ -1,0 +1,15 @@
+{
+  "name": "What We Eating? by Wavelord",
+  "short_name": "WhatWeEating",
+  "description": "Family food finder for Trinidad & Tobago — scan menus, compare prices, pick a spot.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f0f12",
+  "theme_color": "#ff4d2e",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
