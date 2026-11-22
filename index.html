@@ -13,23 +13,11 @@
 <div id="appShell">
 <div id="splash">
   <button id="skipSplash" onclick="hideSplashNow()">Skip ›</button>
-  <svg id="splashBurger" viewBox="0 0 260 220" width="240" height="200" aria-hidden="true">
-    <g class="steamG">
-      <path d="M70 30 q8 -12 0 -24 q-8 -12 0 -24" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
-      <path d="M130 30 q8 -12 0 -24 q-8 -12 0 -24" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
-      <path d="M190 30 q8 -12 0 -24 q-8 -12 0 -24" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.7"/>
-    </g>
-    <g class="bob">
-      <path d="M30 100 Q130 30 230 100 Q230 115 215 115 L45 115 Q30 115 30 100 Z" fill="#F2A93B"/>
-      <circle cx="85" cy="85" r="5" fill="#FFF3D6"/><circle cx="120" cy="70" r="5" fill="#FFF3D6"/><circle cx="155" cy="85" r="5" fill="#FFF3D6"/><circle cx="180" cy="95" r="4" fill="#FFF3D6"/><circle cx="65" cy="95" r="4" fill="#FFF3D6"/>
-      <path d="M30 115 L230 115 L230 125 Q180 140 130 128 Q80 140 30 125 Z" fill="#FF2E2E"/>
-      <path d="M35 130 Q60 145 90 132 Q110 148 140 132 Q170 148 200 132 Q225 140 225 130 L225 142 Q130 165 35 142 Z" fill="#7CFC9A"/>
-      <path d="M40 148 L220 148 L220 160 Q130 178 40 160 Z" fill="#FFD477"/>
-      <path d="M60 162 Q70 180 60 182 Q52 170 60 162 Z" fill="#FFD477"/><path d="M150 165 Q160 183 150 185 Q142 172 150 165 Z" fill="#FFD477"/>
-      <path d="M40 165 L220 165 L220 180 Q130 195 40 180 Z" fill="#7A3B12"/>
-      <path d="M35 185 L225 185 Q225 205 195 205 L65 205 Q35 205 35 185 Z" fill="#F2A93B"/>
-    </g>
-  </svg>
+  <div class="stage">
+    <div class="layer b-bot"></div><div class="layer b-pat"></div><div class="layer b-che"></div>
+    <div class="layer b-let"></div><div class="layer b-tom"></div><div class="layer b-top"></div>
+    <div class="steam"><i></i><i></i><i></i></div>
+  </div>
   <div id="splashTitle">WHAT WE<br>EATING?</div>
   <div class="by">BY WAVELORD</div>
   <button id="tapEat" onclick="hideSplashNow()">TAP TO EAT 🍔</button>
@@ -93,7 +81,7 @@
         <button type="button" class="chip" data-act="pasteOpen">📋 Paste menu</button>
         <button type="button" class="chip" data-act="voiceOpen">🎤 Voice</button>
       </div>
-      <label>Menu Photos <small>(up to 5 — these show in Browse Menu)</small><input id="fPhotos" type="file" accept="image/*" multiple></label>
+      <label>Menu Photos <small>(up to 5 — shows in Browse Menu)</small><input id="fPhotos" type="file" accept="image/*" multiple></label>
       <div id="photoPrev" class="row"></div>
       <div class="row"><button class="primary big" type="submit">Save spot</button><button type="button" class="ghost" data-act="go" data-v="home">Cancel</button></div>
     </form>
@@ -156,22 +144,22 @@
   <div id="buddyMsgs"></div>
   <div class="buddyInput"><input id="buddyText" placeholder="Type or tap 🎤 and talk..."><button class="micBtn" id="buddyMic" data-act="buddyMic" aria-label="Talk to Buddy">🎤</button><button class="primary" data-act="buddySend">Send</button></div>
   <div class="sub" id="buddyVoiceStatus" style="padding:0 10px 8px"></div>
-  <div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button><button class="chip" data-act="buddyQuick" data-v="Etymology of sonder">Etymology of sonder</button><button class="chip" data-act="buddyQuick" data-v="How does voting work?">How voting works?</button></div>
+  <div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button><button class="chip" data-act="buddyQuick" data-v="Etymology of sonder">Etymology of sonder</button><button class="chip" data-act="buddyQuick" data-v="What is open now?">Open now</button></div>
 </div>
 <div id="minimizedHint" class="hidden">App minimized — tap 🍔 to return</div>
 <div id="photoViewer" class="hidden"><button class="pvX" data-act="closePhoto">✕</button><button class="pvNav pvPrev" data-act="photoPrev">‹</button><img id="pvImg" src="" alt="Menu photo"><button class="pvNav pvNext" data-act="photoNext">›</button><p id="pvCount"></p></div>
 <div id="modal" class="hidden"><div class="modalBox"><button class="modalX" data-act="closeModal">✕</button><div id="modalBody"></div></div></div>
 <div id="rouletteBox" class="hidden"><div class="modalBox"><h2 id="rouletteTitle">🎲</h2><p id="rouletteText"></p><div class="row"><button class="primary" data-act="rouletteSpin">Spin again</button><button class="ghost" data-act="rouletteClose">Close</button></div></div></div>
 <script>
-function hideSplashNow(){var s=document.getElementById('splash');if(s){s.style.display='none'}var ob=document.getElementById('onboard');if(ob&&!localStorage.getItem('wwe_settings')){ob.classList.add('show')}}
-function hideOnboardNow(){var ob=document.getElementById('onboard');if(ob)ob.classList.remove('show')}
-function obNextNow(){var h=document.getElementById('obH');if(!h)return;if(h.textContent.indexOf('Search')>-1){h.textContent='Compare before yuh spend';document.getElementById('obP').textContent='See the cheapest roti, doubles or burger in your area in one table.';document.getElementById('obEm').textContent='⚖️'}else if(h.textContent.indexOf('Compare')>-1){h.textContent='Ask Wave Buddy';document.getElementById('obP').textContent='Drag the 🍔 anywhere. Tap it for Talk to AI, Minimize, Exit, Return. Tap 🎤 to talk.';document.getElementById('obEm').textContent='🍔';document.getElementById('obBtn').textContent='Start Eating 🍔'}else{hideOnboardNow()}}
-function buddyToggleNow(){var b=document.getElementById('buddy');if(!b)return;b.classList.toggle('hidden');if(!b.classList.contains('hidden')){var m=document.getElementById('buddyMsgs');if(m&&!m.dataset.done){m.dataset.done='1';var d=document.createElement('div');d.className='msg bot';d.innerHTML='Wah yuh feeling for? 🍔<br>Ask me anything — food in the app, or anything else. Try "cheap doubles", "etymology of sonder", or tap 🎤 and talk.';m.appendChild(d)}}}
-function buddyMinimizeNow(){var b=document.getElementById('buddy');if(b)b.classList.add('hidden')}
-function minimizeAppNow(){document.body.classList.add('app-minimized');var h=document.getElementById('minimizedHint');if(h)h.classList.remove('hidden');var b=document.getElementById('buddy');if(b)b.classList.add('hidden');var m=document.getElementById('buddyMenu');if(m)m.classList.add('hidden')}
-function returnAppNow(){document.body.classList.remove('app-minimized');var h=document.getElementById('minimizedHint');if(h)h.classList.add('hidden');var m=document.getElementById('buddyMenu');if(m)m.classList.add('hidden')}
-function buddyMenuToggleNow(){var m=document.getElementById('buddyMenu');if(m)m.classList.toggle('hidden')}
+function hideSplashNow(){ var s=document.getElementById('splash'); if(s){ s.style.display='none'; } var ob=document.getElementById('onboard'); if(ob && !localStorage.getItem('wwe_settings')){ ob.classList.add('show'); } }
+function hideOnboardNow(){ var ob=document.getElementById('onboard'); if(ob) ob.classList.remove('show'); }
+function obNextNow(){ var h=document.getElementById('obH'); if(!h) return; if(h.textContent.indexOf('Search')>-1){ h.textContent='Compare before yuh spend'; document.getElementById('obP').textContent='See the cheapest roti, doubles or burger in your area in one table.'; document.getElementById('obEm').textContent='⚖️'; } else if(h.textContent.indexOf('Compare')>-1){ h.textContent='Ask Wave Buddy'; document.getElementById('obP').textContent='Drag the 🍔 anywhere. Tap it for Talk to AI, Minimize, Exit, Return. Tap 🎤 to talk.'; document.getElementById('obEm').textContent='🍔'; document.getElementById('obBtn').textContent='Start Eating 🍔'; } else { hideOnboardNow(); } }
+function buddyToggleNow(){ var b=document.getElementById('buddy'); if(!b) return; b.classList.toggle('hidden'); if(!b.classList.contains('hidden')){ var m=document.getElementById('buddyMsgs'); if(m && !m.dataset.done){ m.dataset.done='1'; var d=document.createElement('div'); d.className='msg bot'; d.innerHTML='Wah yuh feeling for? 🍔<br>Ask me anything — food in the app, or anything else. Try "cheap doubles", "etymology of sonder", or tap 🎤 and talk.'; m.appendChild(d); } } }
+function buddyMinimizeNow(){ var b=document.getElementById('buddy'); if(b) b.classList.add('hidden'); }
+function minimizeAppNow(){ document.body.classList.add('app-minimized'); var h=document.getElementById('minimizedHint'); if(h) h.classList.remove('hidden'); var b=document.getElementById('buddy'); if(b) b.classList.add('hidden'); var m=document.getElementById('buddyMenu'); if(m) m.classList.add('hidden'); }
+function returnAppNow(){ document.body.classList.remove('app-minimized'); var h=document.getElementById('minimizedHint'); if(h) h.classList.add('hidden'); var m=document.getElementById('buddyMenu'); if(m) m.classList.add('hidden'); }
+function buddyMenuToggleNow(){ var m=document.getElementById('buddyMenu'); if(m) m.classList.toggle('hidden'); }
 </script>
 <script src="app.js"></script>
 </body>
-                                                                                                                                                                                                                                                                                                                       </html>
+</html>
