@@ -93,7 +93,7 @@
         <button type="button" class="chip" data-act="pasteOpen">📋 Paste menu</button>
         <button type="button" class="chip" data-act="voiceOpen">🎤 Voice</button>
       </div>
-      <label>Photos <small>(up to 5)</small><input id="fPhotos" type="file" accept="image/*" multiple></label>
+      <label>Menu Photos <small>(up to 5 — these show in Browse Menu)</small><input id="fPhotos" type="file" accept="image/*" multiple></label>
       <div id="photoPrev" class="row"></div>
       <div class="row"><button class="primary big" type="submit">Save spot</button><button type="button" class="ghost" data-act="go" data-v="home">Cancel</button></div>
     </form>
@@ -103,14 +103,14 @@
   <section id="v-budget" class="view"><h2>💰 Budget Lime</h2><div class="sec"><label>Total budget $<input id="bTotal" type="number" value="200"></label><label>People<input id="bPeople" type="number" value="2"></label><button class="primary" data-act="runBudget" style="margin-top:10px">Find fits</button></div><div id="budgetOut"></div></section>
   <section id="v-vote" class="view">
     <h2>🗳️ Family Vote</h2>
-    <p class="sub">Add options, share link. Guest opens link and taps 👍 / 👎 on each option.</p>
+    <p class="sub">1 vote per person per option. Guest votes, then taps Copy Updated Link to send counts back.</p>
     <div class="sec">
       <label>Question<input id="vQ" value="What we eating tonight?"></label>
       <div class="row"><input id="vOpt" placeholder="Add option (spot name)"><button class="primary" data-act="addVoteOpt">Add</button></div>
       <div id="voteOpts" class="chips"></div>
       <div class="row" style="margin-top:10px"><button class="primary" data-act="startVote">Start vote</button><button class="ghost" data-act="shareVote">🔗 Share vote link</button></div>
       <p class="sub" id="voteShareMsg"></p>
-      <div id="voteLinkBox" class="hidden" style="margin-top:10px"><label>Your vote link — copy &amp; send to family<input id="voteLinkInput" readonly></label><div class="row" style="margin-top:8px"><button class="primary" data-act="copyVoteLink">📋 Copy link</button><button class="ghost" data-act="openVoteWhatsApp">💬 Send on WhatsApp</button></div></div>
+      <div id="voteLinkBox" class="hidden" style="margin-top:10px"><label>Your vote link — copy &amp; send to family<input id="voteLinkInput" readonly></label><div class="row" style="margin-top:8px"><button class="primary" data-act="copyVoteLink">📋 Copy link</button><button class="ghost" data-act="openVoteWhatsApp">💬 Send on WhatsApp</button><button class="ghost" data-act="copyUpdatedVoteLink">🔄 Copy Updated Link (after voting)</button></div></div>
     </div>
     <div id="voteOut"></div>
   </section>
@@ -143,7 +143,6 @@
   <button data-act="go" data-v="settings">⚙️<span>Settings</span></button>
 </nav>
 </div>
-<!-- DRAGGABLE HAMBURGER BUDDY - OVERLAY, ALWAYS ON TOP -->
 <button id="buddyFab" aria-label="Burger Buddy - drag me anywhere, tap for options">🍔</button>
 <div id="buddyMenu" class="hidden">
   <button data-act="buddyMenuTalk">💬 Talk to AI</button>
@@ -155,17 +154,19 @@
 <div id="buddy" class="hidden">
   <div class="buddyHead"><b>🍔 Wave Buddy</b><span style="display:flex;gap:6px"><button onclick="buddyMinimizeNow()" title="Minimize chat">—</button><button onclick="buddyToggleNow()">✕</button></span></div>
   <div id="buddyMsgs"></div>
-  <div class="buddyInput"><input id="buddyText" placeholder="Wah yuh feeling for? Ask anything..."><button class="primary" data-act="buddySend">Send</button></div>
-  <div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button><button class="chip" data-act="buddyQuick" data-v="What is open now?">Open now</button><button class="chip" data-act="buddyQuick" data-v="How does voting work?">How voting works?</button></div>
+  <div class="buddyInput"><input id="buddyText" placeholder="Type or tap 🎤 and talk..."><button class="micBtn" id="buddyMic" data-act="buddyMic" aria-label="Talk to Buddy">🎤</button><button class="primary" data-act="buddySend">Send</button></div>
+  <div class="sub" id="buddyVoiceStatus" style="padding:0 10px 8px"></div>
+  <div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button><button class="chip" data-act="buddyQuick" data-v="Etymology of sonder">Etymology of sonder</button><button class="chip" data-act="buddyQuick" data-v="How does voting work?">How voting works?</button></div>
 </div>
 <div id="minimizedHint" class="hidden">App minimized — tap 🍔 to return</div>
+<div id="photoViewer" class="hidden"><button class="pvX" data-act="closePhoto">✕</button><button class="pvNav pvPrev" data-act="photoPrev">‹</button><img id="pvImg" src="" alt="Menu photo"><button class="pvNav pvNext" data-act="photoNext">›</button><p id="pvCount"></p></div>
 <div id="modal" class="hidden"><div class="modalBox"><button class="modalX" data-act="closeModal">✕</button><div id="modalBody"></div></div></div>
 <div id="rouletteBox" class="hidden"><div class="modalBox"><h2 id="rouletteTitle">🎲</h2><p id="rouletteText"></p><div class="row"><button class="primary" data-act="rouletteSpin">Spin again</button><button class="ghost" data-act="rouletteClose">Close</button></div></div></div>
 <script>
 function hideSplashNow(){var s=document.getElementById('splash');if(s){s.style.display='none'}var ob=document.getElementById('onboard');if(ob&&!localStorage.getItem('wwe_settings')){ob.classList.add('show')}}
 function hideOnboardNow(){var ob=document.getElementById('onboard');if(ob)ob.classList.remove('show')}
-function obNextNow(){var h=document.getElementById('obH');if(!h)return;if(h.textContent.indexOf('Search')>-1){h.textContent='Compare before yuh spend';document.getElementById('obP').textContent='See the cheapest roti, doubles or burger in your area in one table.';document.getElementById('obEm').textContent='⚖️'}else if(h.textContent.indexOf('Compare')>-1){h.textContent='Ask Wave Buddy';document.getElementById('obP').textContent='Drag the 🍔 anywhere. Tap it for Talk to AI, Minimize, Exit, Return.';document.getElementById('obEm').textContent='🍔';document.getElementById('obBtn').textContent='Start Eating 🍔'}else{hideOnboardNow()}}
-function buddyToggleNow(){var b=document.getElementById('buddy');if(!b)return;b.classList.toggle('hidden');if(!b.classList.contains('hidden')){var m=document.getElementById('buddyMsgs');if(m&&!m.dataset.done){m.dataset.done='1';var d=document.createElement('div');d.className='msg bot';d.innerHTML='Wah yuh feeling for? 🍔<br>Ask me anything — food in the app, or anything else. Try "cheap doubles", "best roti in Tunapuna", or "what is the capital of France?"';m.appendChild(d)}}}
+function obNextNow(){var h=document.getElementById('obH');if(!h)return;if(h.textContent.indexOf('Search')>-1){h.textContent='Compare before yuh spend';document.getElementById('obP').textContent='See the cheapest roti, doubles or burger in your area in one table.';document.getElementById('obEm').textContent='⚖️'}else if(h.textContent.indexOf('Compare')>-1){h.textContent='Ask Wave Buddy';document.getElementById('obP').textContent='Drag the 🍔 anywhere. Tap it for Talk to AI, Minimize, Exit, Return. Tap 🎤 to talk.';document.getElementById('obEm').textContent='🍔';document.getElementById('obBtn').textContent='Start Eating 🍔'}else{hideOnboardNow()}}
+function buddyToggleNow(){var b=document.getElementById('buddy');if(!b)return;b.classList.toggle('hidden');if(!b.classList.contains('hidden')){var m=document.getElementById('buddyMsgs');if(m&&!m.dataset.done){m.dataset.done='1';var d=document.createElement('div');d.className='msg bot';d.innerHTML='Wah yuh feeling for? 🍔<br>Ask me anything — food in the app, or anything else. Try "cheap doubles", "etymology of sonder", or tap 🎤 and talk.';m.appendChild(d)}}}
 function buddyMinimizeNow(){var b=document.getElementById('buddy');if(b)b.classList.add('hidden')}
 function minimizeAppNow(){document.body.classList.add('app-minimized');var h=document.getElementById('minimizedHint');if(h)h.classList.remove('hidden');var b=document.getElementById('buddy');if(b)b.classList.add('hidden');var m=document.getElementById('buddyMenu');if(m)m.classList.add('hidden')}
 function returnAppNow(){document.body.classList.remove('app-minimized');var h=document.getElementById('minimizedHint');if(h)h.classList.add('hidden');var m=document.getElementById('buddyMenu');if(m)m.classList.add('hidden')}
@@ -173,4 +174,4 @@ function buddyMenuToggleNow(){var m=document.getElementById('buddyMenu');if(m)m.
 </script>
 <script src="app.js"></script>
 </body>
-</html>
+                                                                                                                                                                                                                                                                                                                       </html>
