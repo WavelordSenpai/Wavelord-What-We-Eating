@@ -3,19 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>What We Eating? by Wavelord — Trinidad Food Finder</title>
-<meta name="description" content="What We Eating? by Wavelord — find, scan and compare food spots all over Trinidad & Tobago.">
+<title>What We Eating? by Wavelord</title>
 <meta name="theme-color" content="#ff4d2e">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="splash" aria-label="Welcome">
-  <button id="skipSplash" data-act="skipSplash">Skip ›</button>
+<div id="splash">
+  <button id="skipSplash" onclick="hideSplashNow()">Skip ›</button>
   <div class="stage">
     <div class="layer b-bot"></div><div class="layer b-pat"></div><div class="layer b-che"></div>
     <div class="layer b-let"></div><div class="layer b-tom"></div><div class="layer b-top"></div>
@@ -23,22 +19,22 @@
   </div>
   <div id="splashTitle">WHAT WE<br>EATING?</div>
   <div class="by">BY WAVELORD</div>
-  <button id="tapEat" data-act="skipSplash">TAP TO EAT 🍔</button>
+  <button id="tapEat" onclick="hideSplashNow()">TAP TO EAT 🍔</button>
 </div>
 <div id="onboard">
   <div class="em" id="obEm">🔍</div>
   <h2 id="obH">Search what yuh feeling for</h2>
-  <p id="obP"></p>
+  <p id="obP">Type beef, roti, doubles, pizza — we show the best spots near you.</p>
   <div class="dots"><i></i><i></i><i></i></div>
-  <button class="primary big" id="obBtn" data-act="obNext" style="max-width:320px">Next</button>
-  <button class="ghost" data-act="obSkip" style="margin-top:10px">Skip</button>
+  <button class="primary big" id="obBtn" onclick="obNextNow()">Next</button>
+  <button class="ghost" onclick="hideOnboardNow()">Skip</button>
 </div>
 <header id="top">
   <div class="hrow">
     <div><h1>🍔 What We Eating?</h1><p>by <b>Wavelord</b> • Trinidad &amp; Tobago food lime finder</p></div>
     <div style="display:flex;gap:6px">
-      <button class="icon" data-act="go" data-v="favs" aria-label="My favourites">❤️</button>
-      <button class="icon" data-act="roulette" aria-label="Pick for me">🎲</button>
+      <button class="icon" data-act="go" data-v="favs">❤️</button>
+      <button class="icon" data-act="roulette">🎲</button>
     </div>
   </div>
   <div class="saved" id="savedLine"></div>
@@ -50,15 +46,19 @@
       <input id="q" type="search" placeholder="Wah yuh feeling for? beef, roti, doubles, pizza…" autocomplete="off">
       <div class="chips" id="chips"></div>
       <div class="row">
-        <select id="fArea" aria-label="Area"></select>
-        <select id="fPrice" aria-label="Price"><option value="">Any price</option><option value="1">$ Cheap Eats</option><option value="2">$$ Mid</option><option value="3">$$$ Fancy Lime</option></select>
-        <select id="fSort" aria-label="Sort"><option value="rec">Recommended</option><option value="rating">Highest rated</option><option value="low">Lowest price</option><option value="near">Nearest</option></select>
+        <select id="fArea"></select>
+        <select id="fPrice"><option value="">Any price</option><option value="1">$ Cheap Eats</option><option value="2">$$ Mid</option><option value="3">$$$ Fancy Lime</option></select>
+        <select id="fSort"><option value="rec">Recommended</option><option value="rating">Highest rated</option><option value="low">Lowest price</option><option value="near">Nearest</option></select>
       </div>
       <div class="chips"><button class="chip" id="nearBtn" data-act="nearMe">📍 Near me</button><button class="chip" id="openBtn" data-act="toggleOpen">🕒 Open now</button></div>
     </div>
-    <div id="specialsSec"></div><div class="sec rec" id="forYou"></div>
+    <div id="specialsSec"></div>
+    <div class="sec rec" id="forYou"></div>
     <div class="sec"><div class="secHead"><h2>⚖️ Compare before yuh spend</h2><button class="sm primary" data-act="go" data-v="compare">Compare</button></div><p class="sub">Pick a craving + area and see the best value spots in a table.</p></div>
-    <div id="trendSec"></div><div id="top10Sec"></div><div id="homeList"></div><div id="homeMore"></div>
+    <div id="trendSec"></div>
+    <div id="top10Sec"></div>
+    <div id="homeList"></div>
+    <div id="homeMore"></div>
   </section>
   <section id="v-detail" class="view"><button class="ghost" data-act="go" data-v="home">‹ Back</button><div id="detailBody"></div></section>
   <section id="v-add" class="view">
@@ -69,7 +69,7 @@
       <label>Area<select id="fArea2"></select></label>
       <label>Address / Landmark<input id="fAddr" placeholder="e.g. Corner of Main Rd, Tunapuna"></label>
       <label>Phone<input id="fPhone" type="tel" placeholder="868-..."></label>
-      <label>Hours <small>(e.g. Mon-Sun 8am-8pm)</small><input id="fHours" placeholder="Mon-Sun 8am-8pm"></label>
+      <label>Hours<input id="fHours" placeholder="Mon-Sun 8am-8pm"></label>
       <label>Price level<select id="fPriceLvl"><option value="1">$ Cheap Eats</option><option value="2" selected>$$ Mid</option><option value="3">$$$ Fancy Lime</option></select></label>
       <label>Rating (1-5)<input id="fRating" type="number" min="1" max="5" step="0.5" value="4"></label>
       <label>Notes<textarea id="fNotes" rows="2"></textarea></label>
@@ -101,7 +101,7 @@
     <div id="voteOut"></div>
   </section>
   <section id="v-favs" class="view"><h2>❤️ Favourites</h2><div id="favOut"></div></section>
-  <section id="v-claim" class="view"><h2>🏪 Claim your spot</h2><div class="sec"><p class="sub">Own a food spot? Claim it to update your menu, hours &amp; specials.</p><label>Spot name<input id="clName"></label><label>Your name<input id="clOwner"></label><label>Phone / WhatsApp<input id="clPhone"></label><button class="primary" data-act="submitClaim" style="margin-top:10px">Submit claim</button><p class="sub" id="claimMsg"></p></div></section>
+  <section id="v-claim" class="view"><h2>🏪 Claim your spot</h2><div class="sec"><label>Spot name<input id="clName"></label><label>Your name<input id="clOwner"></label><label>Phone / WhatsApp<input id="clPhone"></label><button class="primary" data-act="submitClaim" style="margin-top:10px">Submit claim</button><p class="sub" id="claimMsg"></p></div></section>
   <section id="v-settings" class="view">
     <h2>⚙️ Settings</h2>
     <div class="sec">
@@ -128,15 +128,21 @@
   <button data-act="go" data-v="vote">🗳️<span>Vote</span></button>
   <button data-act="go" data-v="settings">⚙️<span>Settings</span></button>
 </nav>
-<button id="buddyFab" data-act="buddyToggle">🌊</button>
+<button id="buddyFab" onclick="buddyToggleNow()">🌊</button>
 <div id="buddy" class="hidden">
-  <div class="buddyHead"><b>🌊 Wave Buddy</b><button data-act="buddyToggle">✕</button></div>
+  <div class="buddyHead"><b>🌊 Wave Buddy</b><button onclick="buddyToggleNow()">✕</button></div>
   <div id="buddyMsgs"></div>
   <div class="buddyInput"><input id="buddyText" placeholder="Wah yuh feeling for?"><button class="primary" data-act="buddySend">Send</button></div>
   <div class="chips"><button class="chip" data-act="buddyQuick" data-v="Cheap doubles near me">Cheap doubles</button><button class="chip" data-act="buddyQuick" data-v="Best roti in Tunapuna">Best roti</button><button class="chip" data-act="buddyQuick" data-v="What is open now?">Open now</button></div>
 </div>
 <div id="modal" class="hidden"><div class="modalBox"><button class="modalX" data-act="closeModal">✕</button><div id="modalBody"></div></div></div>
 <div id="rouletteBox" class="hidden"><div class="modalBox"><h2 id="rouletteTitle">🎲</h2><p id="rouletteText"></p><div class="row"><button class="primary" data-act="rouletteSpin">Spin again</button><button class="ghost" data-act="rouletteClose">Close</button></div></div></div>
+<script>
+function hideSplashNow(){ var s=document.getElementById('splash'); if(s){ s.style.display='none'; } var ob=document.getElementById('onboard'); if(ob && !localStorage.getItem('wwe_settings')){ ob.classList.add('show'); } }
+function hideOnboardNow(){ var ob=document.getElementById('onboard'); if(ob) ob.classList.remove('show'); }
+function obNextNow(){ var h=document.getElementById('obH'); if(!h) return; if(h.textContent.indexOf('Search')>-1){ h.textContent='Compare before yuh spend'; document.getElementById('obP').textContent='See the cheapest roti, doubles or burger in your area in one table.'; document.getElementById('obEm').textContent='⚖️'; } else if(h.textContent.indexOf('Compare')>-1){ h.textContent='Ask Wave Buddy'; document.getElementById('obP').textContent='Tap the wave button anytime. Buddy finds cheap eats, top rated, and open-now spots.'; document.getElementById('obEm').textContent='🌊'; document.getElementById('obBtn').textContent='Start Eating 🍔'; } else { hideOnboardNow(); } }
+function buddyToggleNow(){ var b=document.getElementById('buddy'); if(b) b.classList.toggle('hidden'); }
+</script>
 <script src="app.js"></script>
 </body>
-        </html>
+  </html>
