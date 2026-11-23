@@ -1,12 +1,14 @@
 package com.wavelord.whatweeating;
 
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -23,6 +25,7 @@ public class FloatingBuddy {
 
     private View bubbleView;
     private View menuView;
+    private WindowManager.LayoutParams menuParams;
     private boolean isShowing = false;
     private boolean isExpanded = false;
     private static boolean globalBubbleShowing = false;
@@ -35,71 +38,126 @@ public class FloatingBuddy {
     }
 
     public void show() {
-        if (isShowing) return;
-        if (globalBubbleShowing) return;
+        if (isShowing) {
+            return;
+        }
+        if (globalBubbleShowing) {
+            return;
+        }
         bubbleView = makeIconBubble();
-        try { windowManager.addView(bubbleView, params); } catch (Exception e) { return; }
+        try {
+            windowManager.addView(bubbleView, params);
+        } catch (Exception e) {
+            return;
+        }
         isShowing = true;
         globalBubbleShowing = true;
-        // Bounce back - same gentle bob you liked
-        bounceAnim = ObjectAnimator.ofFloat(bubbleView, "translationY", 0f, -12f, 0f);
+        bounceAnim = ObjectAnimator.ofFloat(bubbleView, "translationY", 0f, -12f);
         bounceAnim.setDuration(900);
-        bounceAnim.setRepeatCount(ObjectAnimator.INFINITE);
-        bounceAnim.setRepeatMode(ObjectAnimator.REVERSE);
+        bounceAnim.setRepeatCount(ValueAnimator.INFINITE);
+        bounceAnim.setRepeatMode(ValueAnimator.REVERSE);
         bounceAnim.start();
     }
 
     public void hide() {
-        if (!isShowing && !globalBubbleShowing) return;
-        if (bounceAnim != null) { try { bounceAnim.cancel(); } catch (Exception e) {} bounceAnim = null; }
+        if (isShowing == false && globalBubbleShowing == false) {
+            return;
+        }
+        if (bounceAnim != null) {
+            try {
+                bounceAnim.cancel();
+            } catch (Exception e) {
+            }
+            bounceAnim = null;
+        }
         try {
-            if (isExpanded && menuView != null) windowManager.removeView(menuView);
-            if (bubbleView != null) windowManager.removeView(bubbleView);
-        } catch (Exception e) {}
-        bubbleView = null; menuView = null;
-        isShowing = false; isExpanded = false;
+            if (isExpanded && menuView != null) {
+                windowManager.removeView(menuView);
+            }
+        } catch (Exception e) {
+        }
+        try {
+            if (bubbleView != null) {
+                windowManager.removeView(bubbleView);
+            }
+        } catch (Exception e) {
+        }
+        bubbleView = null;
+        menuView = null;
+        menuParams = null;
+        isShowing = false;
+        isExpanded = false;
         globalBubbleShowing = false;
     }
 
-    // BUBBLE = YOUR ICON IMAGE. No emoji, no layers, no 3D.
     private View makeIconBubble() {
         ImageView bubble = new ImageView(context);
         try {
             Drawable icon = context.getPackageManager().getApplicationIcon(context.getPackageName());
             bubble.setImageDrawable(icon);
         } catch (PackageManager.NameNotFoundException e) {
-            // Fallback only if icon missing - should never happen
-            bubble.setImageResource(android.R.drawable.ic_dialog_info);
+            bubble.setImageResource(android.R.drawable.sym_def_app_icon);
         }
-        bubble.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        bubble.setScaleType(ImageView.ScaleType.CENTER_CROP);
         bubble.setPadding(0, 0, 0, 0);
-        // 68dp - big enough to see your pin + burger, small enough to never block Tap To Eat
         int size = (int) (68 * context.getResources().getDisplayMetrics().density);
         bubble.setLayoutParams(new WindowManager.LayoutParams(size, size));
 
         bubble.setOnTouchListener(new View.OnTouchListener() {
-            private int lastX, lastY;
-            private float downX, downY;
+            private int lastX;
+            private int lastY;
+            private float downX;
+            private float downY;
             private long downTime;
-            @Override public boolean onTouch(View v, MotionEvent event) {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        downTime = System.currentTimeMillis();
-                        lastX = params.x; lastY = params.y;
-                        downX = event.getRawX(); downY = event.getRawY();
-                        return true;
-                    case MotionEvent.ACTION_MOVE:
-                        params.x = lastX + (int) (event.getRawX() - downX);
-                        params.y = lastY + (int) (event.getRawY() - downY);
-                        try { windowManager.updateViewLayout(bubbleView, params); } catch (Exception e) {}
-                        return true;
-                    case MotionEvent.ACTION_UP:
-                        if (System.currentTimeMillis() - downTime < 200
-                            && Math.abs(event.getRawX() - downX) < 10
-                            && Math.abs(event.getRawY() - downY) < 10) {
-                            toggleMenu();
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    downTime = System.currentTimeMillis();
+                    lastX = params.x;
+                    lastY = params.y;
+                    downX = event.getRawX();
+                    downY = event.getRawY();
+                    if (bounceAnim != null) {
+                        try {
+                            bounceAnim.cancel();
+                        } catch (Exception e) {
                         }
-                        return true;
+                        bounceAnim = null;
+                    }
+                    return true;
+                }
+                if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                    params.x = lastX - (int) (event.getRawX() - downX);
+                    params.y = lastY - (int) (event.getRawY() - downY);
+                    try {
+                        windowManager.updateViewLayout(bubbleView, params);
+                    } catch (Exception e) {
+                    }
+                    if (isExpanded && menuView != null && menuParams != null) {
+                        menuParams.x = params.x;
+                        menuParams.y = params.y + 80;
+                        try {
+                            windowManager.updateViewLayout(menuView, menuParams);
+                        } catch (Exception e) {
+                        }
+                    }
+                    return true;
+                }
+                if (event.getAction() == MotionEvent.ACTION_UP) {
+                    if (bounceAnim == null && bubbleView != null) {
+                        bounceAnim = ObjectAnimator.ofFloat(bubbleView, "translationY", 0f, -12f);
+                        bounceAnim.setDuration(900);
+                        bounceAnim.setRepeatCount(ValueAnimator.INFINITE);
+                        bounceAnim.setRepeatMode(ValueAnimator.REVERSE);
+                        bounceAnim.start();
+                    }
+                    if (System.currentTimeMillis() - downTime < 200
+                        && Math.abs(event.getRawX() - downX) < 10
+                        && Math.abs(event.getRawY() - downY) < 10) {
+                        toggleMenu();
+                    }
+                    return true;
                 }
                 return false;
             }
@@ -107,48 +165,89 @@ public class FloatingBuddy {
         return bubble;
     }
 
-    private void toggleMenu() { if (isExpanded) collapse(); else expand(); }
+    private void toggleMenu() {
+        if (isExpanded) {
+            collapse();
+        } else {
+            expand();
+        }
+    }
 
     private void expand() {
-        if (isExpanded) return;
+        if (isExpanded) {
+            return;
+        }
         LinearLayout menu = new LinearLayout(context);
         menu.setOrientation(LinearLayout.VERTICAL);
         menu.setBackgroundColor(Color.parseColor("#1A0F0D"));
         menu.setPadding(30, 30, 30, 30);
-        menu.addView(makeMenuButton("🤖 Ask AI - What We Eating?", new View.OnClickListener() {
-            @Override public void onClick(View v) { openApp(); collapse(); }
+        menu.addView(makeMenuButton("Ask AI - What We Eating?", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openApp();
+                collapse();
+            }
         }));
-        menu.addView(makeMenuButton("🏠 Back To App", new View.OnClickListener() {
-            @Override public void onClick(View v) { openApp(); collapse(); }
+        menu.addView(makeMenuButton("Back To App", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openApp();
+                collapse();
+            }
         }));
-        menu.addView(makeMenuButton("➖ Minimize To Bubble", new View.OnClickListener() {
-            @Override public void onClick(View v) { collapse(); }
+        menu.addView(makeMenuButton("Minimize To Bubble", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                collapse();
+            }
         }));
-        menu.addView(makeMenuButton("❌ Exit Buddy", new View.OnClickListener() {
-            @Override public void onClick(View v) { context.stopService(new Intent(context, FloatingBuddyService.class)); }
+        menu.addView(makeMenuButton("Exit Buddy", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    context.stopService(new Intent(context, FloatingBuddyService.class));
+                } catch (Exception e) {
+                }
+            }
         }));
-        WindowManager.LayoutParams menuParams = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+        menuParams = new WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             params.type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT);
-        menuParams.gravity = Gravity.TOP | Gravity.START;
-        menuParams.x = params.x; menuParams.y = params.y + 140;
+        menuParams.gravity = Gravity.BOTTOM | Gravity.END;
+        menuParams.x = params.x;
+        menuParams.y = params.y + 80;
         menuView = menu;
-        try { windowManager.addView(menuView, menuParams); } catch (Exception e) { return; }
+        try {
+            windowManager.addView(menuView, menuParams);
+        } catch (Exception e) {
+            return;
+        }
         isExpanded = true;
     }
 
     private void collapse() {
-        if (!isExpanded) return;
-        try { windowManager.removeView(menuView); } catch (Exception e) {}
-        menuView = null; isExpanded = false;
+        if (isExpanded == false) {
+            return;
+        }
+        try {
+            windowManager.removeView(menuView);
+        } catch (Exception e) {
+        }
+        menuView = null;
+        menuParams = null;
+        isExpanded = false;
     }
 
     private TextView makeMenuButton(String text, View.OnClickListener click) {
         TextView btn = new TextView(context);
-        btn.setText(text); btn.setTextSize(16); btn.setTextColor(Color.WHITE);
-        btn.setPadding(20, 24, 20, 24); btn.setOnClickListener(click);
+        btn.setText(text);
+        btn.setTextSize(16);
+        btn.setTextColor(Color.WHITE);
+        btn.setPadding(20, 24, 20, 24);
+        btn.setOnClickListener(click);
         return btn;
     }
 
@@ -161,17 +260,21 @@ public class FloatingBuddy {
     }
 
     public static WindowManager.LayoutParams createParams() {
-        int type = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
-            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            : WindowManager.LayoutParams.TYPE_PHONE;
+        int type;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        } else {
+            type = WindowManager.LayoutParams.TYPE_PHONE;
+        }
         WindowManager.LayoutParams p = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT,
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT);
-        // Bottom-right, small - can NEVER sit on Tap To Eat / top button
         p.gravity = Gravity.BOTTOM | Gravity.END;
-        p.x = 20; p.y = 220;
+        p.x = 20;
+        p.y = 220;
         return p;
     }
-}
+                                                 }
