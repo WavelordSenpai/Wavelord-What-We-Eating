@@ -67,16 +67,20 @@ jobs:
           SRC="icon-512.png"
           if [ ! -f "$SRC" ]; then SRC="assets/icon-512.png"; fi
           echo "Using icon source: $SRC"
+          file "$SRC"
           for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
             density="${spec%%:*}"
             size="${spec##*:}"
             mkdir -p android/app/src/main/res/mipmap-$density
-            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher.png
-            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher_round.png
-            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
+            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher.png
+            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_round.png
+            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
+            file android/app/src/main/res/mipmap-$density/ic_launcher.png
           done
-          mkdir -p android/app/src/main/res/drawable
-          cp "$SRC" android/app/src/main/res/drawable/ic_launcher.png || true
+          echo "Removing bad drawable icon that breaks AAPT"
+          rm -f android/app/src/main/res/drawable/ic_launcher.png
+          rm -f android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
+          ls -lh android/app/src/main/res/mipmap-xxxhdpi/
 
       - name: Apply overlay - YOUR real layout
         run: |
