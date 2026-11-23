@@ -1,64 +1,63 @@
-/* sw.js — PWA service worker for "What We Eating?" — AT ROOT, not in netlify/functions/ */
-const VER = "wwe-shell-v2.1.0"; // <-- bump this every deploy or phones keep old code
-const RT = "wwe-runtime-v2";
-const SHELL = [
-  "./",
-  "index.html",
-  "style.css",   // <-- was missing, caused blank offline page
-  "app.js",      // <-- was missing
-  "manifest.json",
-  "assets/icon-192.png",
-  "assets/icon-512.png"
+// What We Eating? - Service Worker
+// Bump this version EVERY time you change icon / manifest
+const CACHE_NAME = 'wwe-v3-icon-fix';
+
+const CORE_FILES = [
+  './',
+  './index.html',
+  './app.js',
+  './style.css',
+  './manifest.json',
+  './icon-512.png',
+  './icon-192.png',
+  './assets/icon-512.png',
+  './assets/icon-192.png'
 ];
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(VER).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
-});
-
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VER && k !== RT).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim())
+// Install - cache core files + new icons
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(CORE_FILES);
+    }).then(() => self.skipWaiting())
   );
 });
 
-async function trim(cacheName, max) {
-  const c = await caches.open(cacheName);
-  const keys = await c.keys();
-  if (keys.length > max) await Promise.all(keys.slice(0, keys.length - max).map((k) => c.delete(k)));
-}
+// Activate - DELETE all old caches, so old icon is gone
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  if (url.pathname.includes("/.netlify/functions/")) return; // never cache API
-  if (!/^https?:$/.test(url.protocol)) return;
+// Fetch - Network first for manifest + icons, cache first for rest
+self.addEventListener('fetch', (event) => {
+  const url = event.request.url;
 
-  const sameOrigin = url.origin === self.location.origin;
-
-  if (sameOrigin && (req.mode === "navigate" || url.pathname.endsWith("/index.html") || url.pathname === "/")) {
-    e.respondWith(
-      fetch(req)
-        .then((res) => { const copy = res.clone(); caches.open(VER).then((c) => c.put("index.html", copy)); return res; })
-        .catch(() => caches.match("index.html").then((r) => r || caches.match("./")))
+  // ALWAYS fetch fresh manifest + icons, never use old cached ones
+  if (url.includes('manifest.json') || url.includes('icon-')) {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
 
-  e.respondWith(
-    caches.match(req).then((hit) => {
-      const net = fetch(req)
-        .then((res) => {
-          if (res && (res.ok || res.type === "opaque")) {
-            const copy = res.clone();
-            caches.open(sameOrigin ? VER : RT).then((c) => { c.put(req, copy); if (!sameOrigin) trim(RT, 150); });
-          }
-          return res;
-        })
-        .catch(() => hit);
-      return hit || net;
+  // Everything else: cache first, fallback to network
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      return cached || fetch(event.request);
     })
   );
 });
