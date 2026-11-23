@@ -61,13 +61,14 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      - name: Generate Android launcher icons
+      - name: Generate Android launcher icons - MIPMAP ONLY, NO DRAWABLE
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick > /dev/null
           SRC="icon-512.png"
           if [ ! -f "$SRC" ]; then SRC="assets/icon-512.png"; fi
           echo "Using icon source: $SRC"
           file "$SRC"
+          ls -lh "$SRC"
           for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
             density="${spec%%:*}"
             size="${spec##*:}"
@@ -77,9 +78,12 @@ jobs:
             convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
             file android/app/src/main/res/mipmap-$density/ic_launcher.png
           done
-          echo "Removing bad drawable icon that breaks AAPT"
+          echo "DELETE any bad drawable icon - this is what killed the last build"
           rm -f android/app/src/main/res/drawable/ic_launcher.png
+          rm -f android/app/src/main/res/drawable/ic_launcher_round.png
           rm -f android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
+          echo "PROOF - drawable must NOT have ic_launcher:"
+          ls -lh android/app/src/main/res/drawable/ || echo "no drawable folder - good"
           ls -lh android/app/src/main/res/mipmap-xxxhdpi/
 
       - name: Apply overlay - YOUR real layout
