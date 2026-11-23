@@ -37,9 +37,9 @@ select{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ro
 #splashTitle{font-size:2.6rem;font-weight:900;line-height:.95;color:#fff}.by{letter-spacing:.3em;font-weight:800;font-size:.8rem}#tapEat{background:#111;color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;margin-top:8px;position:relative;z-index:10;pointer-events:auto}
 #onboard{position:fixed;inset:0;z-index:190;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:12px}
 #onboard.show{display:flex}.em{font-size:3rem}
-#buddyFab{position:fixed;left:14px;right:auto;bottom:calc(var(--nav) + 90px);z-index:320;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.5rem;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;place-items:center;touch-action:none;user-select:none}
-#buddyMenu{position:fixed;z-index:330;background:#1c1c22;border:1px solid var(--line);border-radius:14px;padding:8px;display:none;min-width:210px;max-width:230px;left:12px;right:auto;bottom:calc(var(--nav) + 150px);box-shadow:0 10px 30px rgba(0,0,0,.6)}
-#buddyMenu button{display:block;width:100%;text-align:left;background:transparent;color:var(--text);padding:12px;border-radius:10px}
+/* WEB BUDDY DELETED - native bubble is the ONLY buddy. Never show this again. */
+#buddyFab{display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;width:0!important;height:0!important}
+#buddyMenu{display:none!important;visibility:hidden!important;pointer-events:none!important}
 #miniDock{position:fixed;left:12px;right:12px;bottom:calc(68px + 12px);z-index:300;background:#1c1c22;border:1px solid #33333c;border-radius:999px;padding:6px;display:none!important;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
 #miniDock button{flex:1;background:#2a2a33;color:#fff;padding:10px 4px;border-radius:999px;font-size:.8rem}
 #buddy{position:fixed;right:12px;bottom:calc(var(--nav) + 78px);z-index:310;width:min(380px,calc(100vw - 24px));max-height:62vh;background:var(--card);border:1px solid var(--line);border-radius:18px;display:none;flex-direction:column;overflow:hidden}
@@ -78,14 +78,17 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
 body.modal-open #buddyFab{display:none!important}
 body.modal-open #buddyMenu{display:none!important}
 body.modal-open #miniDock{display:none!important}
-body.minimized #appShell{display:none!important}
+/* FIXED: minimized must NEVER hide the app, and must NEVER bring back the web buddy */
+body.minimized #appShell{display:block!important;visibility:visible!important}
 body.minimized #buddy{display:none}
 body.minimized #buddy.open{display:flex!important}
 body.minimized #miniDock{display:none!important}
-body.minimized #buddyFab{display:grid!important}
+body.minimized #buddyFab{display:none!important;visibility:hidden!important;pointer-events:none!important}
 body.minimized #toast{bottom:120px!important}
 body.safe-mode #splash{display:none!important}
 body.safe-mode #buddyFab{display:none!important}
 body.safe-mode #buddyMenu{display:none!important}
 body.safe-mode #buddy{display:none!important}
 body.safe-mode #onboard{display:none!important}
+/* FINAL KILL-SWITCH - wins over everything above */
+#buddyFab,#buddyMenu{display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important}
