@@ -34,10 +34,10 @@ select{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ro
 @keyframes drop{from{transform:translate(-50%,-40px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
 .steam{position:absolute;top:-10px;left:50%;display:flex;gap:14px;pointer-events:none}.steam i{width:8px;height:28px;background:rgba(255,255,255,.85);border-radius:999px;display:block;animation:steam 1.6s infinite}
 @keyframes steam{0%{transform:translateY(10px);opacity:0}50%{opacity:1}100%{transform:translateY(-10px);opacity:0}}
-#splashTitle{font-size:2.6rem;font-weight:900;line-height:.95;color:#fff}.by{letter-spacing:.3em;font-weight:800;font-size:.8rem}#tapEat{background:#111;color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;margin-top:8px;position:relative;z-index:5}
+#splashTitle{font-size:2.6rem;font-weight:900;line-height:.95;color:#fff}.by{letter-spacing:.3em;font-weight:800;font-size:.8rem}#tapEat{background:#111;color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;margin-top:8px;position:relative;z-index:10;pointer-events:auto}
 #onboard{position:fixed;inset:0;z-index:190;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:12px}
 #onboard.show{display:flex}.em{font-size:3rem}
-#buddyFab{position:fixed;right:14px;bottom:calc(var(--nav) + 90px);z-index:90;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.5rem;box-shadow:0 8px 22px rgba(0,0,0,.5);touch-action:none;display:grid;place-items:center}
+#buddyFab{position:fixed;right:14px;bottom:calc(var(--nav) + 90px);z-index:90;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.5rem;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;place-items:center}
 #buddyMenu{position:fixed;z-index:210;background:#1c1c22;border:1px solid var(--line);border-radius:14px;padding:8px;display:none;min-width:210px;right:12px;bottom:calc(var(--nav) + 150px);box-shadow:0 10px 30px rgba(0,0,0,.6)}
 #buddyMenu button{display:block;width:100%;text-align:left;background:transparent;color:var(--text);padding:12px;border-radius:10px}
 #miniDock{position:fixed;left:12px;right:12px;bottom:calc(68px + 12px);z-index:120;background:#1c1c22;border:1px solid #33333c;border-radius:999px;padding:6px;display:none;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
@@ -60,7 +60,6 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
 .photoRow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.photoRow img{width:90px;height:90px;object-fit:cover;border-radius:10px;cursor:pointer;border:2px solid transparent}
 #lightbox{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;flex-direction:column}
 #lightboxImg{max-width:94vw;max-height:78vh;border-radius:12px;object-fit:contain}
-/* ===== FIX ADDED - dropdowns / chips overlapping - DO NOT DELETE ===== */
 .filterRow{flex-wrap:nowrap;gap:6px}
 .filterRow select{flex:1 1 0;min-width:0;font-size:.82rem;padding:10px 4px 10px 8px}
 .filterRow select:first-child{flex:1.25 1 0}
@@ -71,13 +70,6 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
   .chip{font-size:.75rem;padding:6px 9px}
   #top h1{font-size:1.3rem}
 }
-#splash{animation:splashKill 0.5s ease 8s forwards}
-@keyframes splashKill{to{opacity:0;visibility:hidden;pointer-events:none}}
-#splash.done{animation:none}
-#tapEat{position:relative;z-index:10;pointer-events:auto}
 #splash .stage{pointer-events:none}
 #splash .steam{pointer-events:none}
-/* ===== KILL NETLIFY BADGE - STRONG - MUST BE LAST ===== */
-a[href*="netlify"],div[class*="netlify"],iframe[src*="netlify"],[id*="netlify"],[class*="netlify-badge"],#netlify-badge,.netlify-badge{display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;height:0!important;width:0!important}
-#nav{z-index:9999!important}
 #homeList{min-height:80px}
