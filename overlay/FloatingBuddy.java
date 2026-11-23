@@ -3,12 +3,15 @@ package com.wavelord.whatweeating;
 import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -34,12 +37,12 @@ public class FloatingBuddy {
     public void show() {
         if (isShowing) return;
         if (globalBubbleShowing) return;
-        bubbleView = makeBurgerBubble();
+        bubbleView = makeIconBubble();
         try { windowManager.addView(bubbleView, params); } catch (Exception e) { return; }
         isShowing = true;
         globalBubbleShowing = true;
-        // BOUNCE ANIMATION - back, no lambda needed
-        bounceAnim = ObjectAnimator.ofFloat(bubbleView, "translationY", 0f, -14f, 0f);
+        // Bounce back - same gentle bob you liked
+        bounceAnim = ObjectAnimator.ofFloat(bubbleView, "translationY", 0f, -12f, 0f);
         bounceAnim.setDuration(900);
         bounceAnim.setRepeatCount(ObjectAnimator.INFINITE);
         bounceAnim.setRepeatMode(ObjectAnimator.REVERSE);
@@ -58,22 +61,23 @@ public class FloatingBuddy {
         globalBubbleShowing = false;
     }
 
-    // YOUR NICE BURGER - same layers as splash, NOT just an emoji
-    private View makeBurgerBubble() {
-        LinearLayout wrap = new LinearLayout(context);
-        wrap.setOrientation(LinearLayout.VERTICAL);
-        wrap.setGravity(Gravity.CENTER);
-        wrap.setPadding(10, 10, 10, 10);
+    // BUBBLE = YOUR ICON IMAGE. No emoji, no layers, no 3D.
+    private View makeIconBubble() {
+        ImageView bubble = new ImageView(context);
+        try {
+            Drawable icon = context.getPackageManager().getApplicationIcon(context.getPackageName());
+            bubble.setImageDrawable(icon);
+        } catch (PackageManager.NameNotFoundException e) {
+            // Fallback only if icon missing - should never happen
+            bubble.setImageResource(android.R.drawable.ic_dialog_info);
+        }
+        bubble.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        bubble.setPadding(0, 0, 0, 0);
+        // 68dp - big enough to see your pin + burger, small enough to never block Tap To Eat
+        int size = (int) (68 * context.getResources().getDisplayMetrics().density);
+        bubble.setLayoutParams(new WindowManager.LayoutParams(size, size));
 
-        wrap.addView(layer("#F5C07A", 110, 34)); // top bun
-        wrap.addView(layer("#FF3B30", 92, 10));  // tomato
-        wrap.addView(layer("#7CFC9A", 104, 10)); // lettuce
-        wrap.addView(layer("#FFD477", 98, 10));  // cheese
-        wrap.addView(layer("#8A4A22", 96, 20));  // patty
-        wrap.addView(layer("#E8A04A", 104, 16)); // bottom bun
-
-        // DRAGGABLE + TAP - old style, no lambda
-        wrap.setOnTouchListener(new View.OnTouchListener() {
+        bubble.setOnTouchListener(new View.OnTouchListener() {
             private int lastX, lastY;
             private float downX, downY;
             private long downTime;
@@ -100,19 +104,8 @@ public class FloatingBuddy {
                 return false;
             }
         });
-        return wrap;
+        return bubble;
     }
-
-    private View layer(String color, int w, int h) {
-        View v = new View(context);
-        v.setBackgroundColor(Color.parseColor(color));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(w), dp(h));
-        lp.gravity = Gravity.CENTER;
-        v.setLayoutParams(lp);
-        return v;
-    }
-
-    private int dp(int v) { return (int) (v * context.getResources().getDisplayMetrics().density); }
 
     private void toggleMenu() { if (isExpanded) collapse(); else expand(); }
 
@@ -176,8 +169,9 @@ public class FloatingBuddy {
             type,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT);
+        // Bottom-right, small - can NEVER sit on Tap To Eat / top button
         p.gravity = Gravity.BOTTOM | Gravity.END;
         p.x = 20; p.y = 220;
         return p;
     }
-            }
+}
