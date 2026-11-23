@@ -1,4 +1,18 @@
 'use strict';
+// SAFE MODE + TAP FIX - runs FIRST, before anything else
+(function(){
+  try{
+    document.body.classList.remove('modal-open','minimized');
+    if(location.search.includes('wwe_safe=1')||location.hash.includes('wwe_safe=1')){
+      document.body.classList.add('safe-mode');
+      window.addEventListener('DOMContentLoaded',()=>{
+        const s=document.getElementById('splash'); if(s){s.style.display='none';}
+        const m=document.getElementById('modal'); if(m)m.classList.remove('open');
+      });
+    }
+  }catch(e){}
+})();
+function killSplash(){const s=document.getElementById('splash');if(s){s.classList.add('done');s.style.display='none';s.style.visibility='hidden';s.style.pointerEvents='none';}}
 const APP={name:'What We Eating?',by:'Wavelord',version:'2.0.0',ownerEmail:'vireshsingj26@protonmail.com',adminPassword:'1919',siteUrl:'https://wavelord-what-we-eating.netlify.app',fnBase:'https://wavelord-what-we-eating.netlify.app/.netlify/functions',fnChat:'groq-chat',maxPhotos:5,tz:'America/Port_of_Spain'};
 const AREAS=['San Juan','Port of Spain','St James','Westmoorings','Chaguanas','Couva','Arima','Sangre Grande','San Fernando','Point Fortin','Tobago','Curepe','Tunapuna','Diego Martin','Barataria','Morvant'];
 const CRAVINGS=[{k:'Beef',re:/beef|steak|burger|smash/i},{k:'Burger',re:/burger|smash/i},{k:'Roti',re:/roti|dhalpuri|paratha|buss/i},{k:'Doubles',re:/doubles/i},{k:'Pizza',re:/pizza/i},{k:'Chicken',re:/chicken|wings/i},{k:'Seafood',re:/seafood|shrimp|fish|shark|crab|lobster|calamari/i},{k:'Sides',re:/fries|sides|salad|rice/i},{k:'Drinks',re:/juice|soda|drink|shake|water|sorrel|punch/i},{k:'Dessert',re:/cake|ice cream|dessert|pudding|brownie/i},{k:'Breakfast',re:/breakfast|egg|bake/i},{k:'Korean',re:/ramyun|ramen|kimchi|bibimbap|bulgogi|donkatsu|mandu/i}];
@@ -26,7 +40,6 @@ let voterId=localStorage.getItem('wwe_voter')||uid();localStorage.setItem('wwe_v
 function saveSpots(){Store.save('wwe_spots',spots)}function saveFavs(){Store.save('wwe_favs',[...favs])}
 let isAdmin=localStorage.getItem('wwe_admin')==='1';
 let editingId=null;
-function killSplash(){const s=$('#splash');if(s){s.classList.add('done');s.style.display='none';}}
 function updateAdminUI(){const addBtn=document.querySelector('#nav button[data-v="add"]');if(addBtn)addBtn.style.display=isAdmin?'':'none';const addView=$('#v-add');if(!isAdmin&&addView&&addView.classList.contains('active'))go('home');}
 function unlockAdmin(){isAdmin=true;localStorage.setItem('wwe_admin','1');updateAdminUI();toast('Admin unlocked ✅ Add Spot is now visible');render();}
 function lockAdmin(){isAdmin=false;localStorage.removeItem('wwe_admin');updateAdminUI();toast('Admin locked 🔒 Add hidden from guests');render();}
@@ -93,7 +106,7 @@ function updateLightbox(){$('#lightboxImg').src=lbPhotos[lbIndex];$('#lbCount').
 function closeLightbox(){$('#lightbox').style.display='none'}
 let lbX=0;$('#lightboxImg')?.addEventListener('touchstart',e=>lbX=e.touches[0].clientX,{passive:true});
 $('#lightboxImg')?.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-lbX;if(Math.abs(dx)>40){lbIndex=dx<0?(lbIndex+1)%lbPhotos.length:(lbIndex-1+lbPhotos.length)%lbPhotos.length;updateLightbox()}},{passive:true});
-function openBuddy(){const buddy=$('#buddy');buddy.classList.add('open');$('#buddyMenu').style.display='none';$('#miniDock').style.display='none';if(!buddy.dataset.welcomed){buddy.dataset.welcomed='1';const msgs=$('#buddyMsgs');const d=document.createElement('div');d.className='msg bot';d.textContent="Wah gwan! 👋 I'm Wave Buddy. I can talk even while the app is minimized. Tap Return when yuh ready to come back.";msgs.appendChild(d)}setTimeout(()=>$('#buddyInput')?.focus(),100)}
+function openBuddy(){if(document.body.classList.contains('safe-mode'))return;const buddy=$('#buddy');buddy.classList.add('open');$('#buddyMenu').style.display='none';$('#miniDock').style.display='none';if(!buddy.dataset.welcomed){buddy.dataset.welcomed='1';const msgs=$('#buddyMsgs');const d=document.createElement('div');d.className='msg bot';d.textContent="Wah gwan! 👋 I'm Wave Buddy. I can talk even while the app is minimized. Tap Return when yuh ready to come back.";msgs.appendChild(d)}setTimeout(()=>$('#buddyInput')?.focus(),100)}
 function buildBuddyContext(){return 'SPOTS:\n'+spots.map(s=>`- ${s.name} in ${s.area} | ⭐ ${s.rating} | Hours: ${s.hours||'n/a'} | Menu: ${(s.menu||[]).map(i=>`${i.name} $${i.price}`).join(', ')}`).join('\n')}
 let buddyHistory=[];
 async function buddyAsk(q){const msgs=$('#buddyMsgs');const add=(t,me)=>{const d=document.createElement('div');d.className='msg '+(me?'me':'bot');d.textContent=t;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d};add(q,true);const thinking=add('Thinking…',false);buddyHistory.push({role:'user',content:q});buddyHistory=buddyHistory.slice(-12);try{const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),15000);const r=await fetch(APP.fnBase+'/'+APP.fnChat,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:buddyHistory,context:buildBuddyContext(),fast:false}),signal:controller.signal});clearTimeout(timer);const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));const txt=j.text||j.reply||j.choices?.[0]?.message?.content||'';if(!txt)throw new Error('Empty reply');thinking.textContent=txt;buddyHistory.push({role:'assistant',content:txt});buddyHistory=buddyHistory.slice(-12)}catch(e){const l=q.toLowerCase();const craving=CRAVINGS.find(c=>l.includes(c.k.toLowerCase()));if(craving){const matches=spots.filter(s=>s.menu.some(m=>craving.re.test(m.name))).sort((a,b)=>(bestFor(a,craving.k)?.price||999)-(bestFor(b,craving.k)?.price||999));if(matches.length){thinking.textContent=`For ${craving.k} (from your spots):\n`+matches.slice(0,3).map(s=>{const b=bestFor(s,craving.k);return `• ${s.name} (${s.area}) — ${b.name} ${money(b.price)} ⭐ ${s.rating}`}).join('\n');return}}thinking.textContent='Wave Buddy couldn\'t reach Groq: '+e.message+'. Check Netlify → Functions → groq-chat log + GROQ_API_KEY.'}}
@@ -148,18 +161,15 @@ document.addEventListener('click',e=>{
   if(act==='buddyExit'){if(confirm('Exit? Buddy will stay floating, app will stay minimized.')){document.body.classList.add('minimized');$('#buddy').classList.remove('open');$('#buddyMenu').style.display='none';$('#miniDock').style.display='none';}}
 });
 (function(){
-  const fab=$('#buddyFab');if(!fab)return;
+  const fab=$('#buddyFab');if(!fab||document.body.classList.contains('safe-mode'))return;
   let startX=0,startY=0,curX=0,curY=0,dragging=false,moved=0;
   function setPos(x,y){fab.style.left=x+'px';fab.style.right='auto';fab.style.top=y+'px';fab.style.bottom='auto';fab.style.position='fixed';}
   function placeMenu(){const menu=$('#buddyMenu');if(!menu||menu.style.display!=='block')return;const r=fab.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(window.innerWidth-230,r.left-10))+'px';menu.style.right='auto';menu.style.top=(r.bottom+8)+'px';menu.style.bottom='auto';}
   fab.addEventListener('touchstart',e=>{const t=e.touches[0];startX=t.clientX;startY=t.clientY;const r=fab.getBoundingClientRect();curX=r.left;curY=r.top;dragging=true;moved=0;},{passive:true});
-  fab.addEventListener('touchmove',e=>{if(!dragging)return;const t=e.touches[0];const dx=t.clientX-startX,dy=t.clientY-startY;if(Math.abs(dx)+Math.abs(dy)>8)moved=1;if(moved){const nx=Math.max(8,Math.min(window.innerWidth-60,curX+dx));const ny=Math.max(80,Math.min(window.innerHeight-80,curY+dy));setPos(nx,ny);placeMenu();}},{passive:true});
+  fab.addEventListener('touchmove',e=>{if(!dragging)return;const t=e.touches[0];const dx=t.clientX-startX,dy=t.clientY-startY;if(Math.abs(dx)+Math.abs(dy)>10)moved=1;if(moved){const nx=Math.max(8,Math.min(window.innerWidth-60,curX+dx));const ny=Math.max(80,Math.min(window.innerHeight-80,curY+dy));setPos(nx,ny);placeMenu();}},{passive:true});
   fab.addEventListener('touchend',()=>{dragging=false;if(moved)return;const menu=$('#buddyMenu');const willOpen=menu.style.display!=='block';menu.style.display=willOpen?'block':'none';if(willOpen)placeMenu();});
-  fab.addEventListener('mousedown',e=>{startX=e.clientX;startY=e.clientY;const r=fab.getBoundingClientRect();curX=r.left;curY=r.top;dragging=true;moved=0;});
-  window.addEventListener('mousemove',e=>{if(!dragging)return;const dx=e.clientX-startX,dy=e.clientY-startY;if(Math.abs(dx)+Math.abs(dy)>8)moved=1;if(moved){setPos(Math.max(8,Math.min(window.innerWidth-60,curX+dx)),Math.max(80,Math.min(window.innerHeight-80,curY+dy)));placeMenu();}});
-  window.addEventListener('mouseup',()=>{if(!dragging)return;dragging=false;if(moved)return;const menu=$('#buddyMenu');const willOpen=menu.style.display!=='block';menu.style.display=willOpen?'block':'none';if(willOpen)placeMenu();});
 })();
 document.addEventListener('click',e=>{const menu=$('#buddyMenu');if(!menu||menu.style.display!=='block')return;if(e.target.closest('#buddyMenu')||e.target.closest('#buddyFab'))return;menu.style.display='none'});
-function showOnboard(force){const ob=$('#onboard');if(!force&&localStorage.getItem('wwe_seen'))return;ob.classList.add('show');let step=0;const steps=[{em:'🔍',h:'Search what yuh feeling for',p:'Type beef, roti, doubles, pizza…'},{em:'⚖️',h:'Compare before yuh spend',p:'See best value in a table.'},{em:'🗳️',h:'Vote with family',p:'1 vote per person. Share the link.'}];const paint=()=>{const s=steps[step];$('#obEm').textContent=s.em;$('#obH').textContent=s.h;$('#obP').textContent=s.p};paint();$('#obBtn').onclick=()=>{step++;if(step>=steps.length){ob.classList.remove('show');localStorage.setItem('wwe_seen','1')}else paint()};document.querySelector('[data-act="obSkip"]').onclick=()=>{ob.classList.remove('show');localStorage.setItem('wwe_seen','1')}}
-(function(){try{const fa=$('#fArea'),ca=$('#cArea'),cc=$('#cCraving');if(fa)fa.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');if(ca)ca.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');if(cc)cc.innerHTML=CRAVINGS.map(c=>`<option>${c.k}</option>`).join('');setupChips();showOnboard(false);render();updateAdminUI();}catch(e){console.error(e);}setTimeout(killSplash,4000);if(liveVoteId)fetchLiveVote(liveVoteId).then(()=>startLivePoll());handleSharedVote();})();
-window.addEventListener('load',()=>{setTimeout(killSplash,4000);});
+function showOnboard(force){if(document.body.classList.contains('safe-mode'))return;const ob=$('#onboard');if(!force&&localStorage.getItem('wwe_seen'))return;ob.classList.add('show');let step=0;const steps=[{em:'🔍',h:'Search what yuh feeling for',p:'Type beef, roti, doubles, pizza…'},{em:'⚖️',h:'Compare before yuh spend',p:'See best value in a table.'},{em:'🗳️',h:'Vote with family',p:'1 vote per person. Share the link.'}];const paint=()=>{const s=steps[step];$('#obEm').textContent=s.em;$('#obH').textContent=s.h;$('#obP').textContent=s.p};paint();$('#obBtn').onclick=()=>{step++;if(step>=steps.length){ob.classList.remove('show');localStorage.setItem('wwe_seen','1')}else paint()};document.querySelector('[data-act="obSkip"]').onclick=()=>{ob.classList.remove('show');localStorage.setItem('wwe_seen','1')}}
+(function(){try{const fa=$('#fArea'),ca=$('#cArea'),cc=$('#cCraving');if(fa)fa.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');if(ca)ca.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');if(cc)cc.innerHTML=CRAVINGS.map(c=>`<option>${c.k}</option>`).join('');setupChips();showOnboard(false);render();updateAdminUI();}catch(e){console.error(e);}setTimeout(killSplash,1500);if(liveVoteId)fetchLiveVote(liveVoteId).then(()=>startLivePoll());if(!location.search.includes('wwe_safe'))handleSharedVote();})();
+window.addEventListener('load',()=>{setTimeout(killSplash,1500);});
