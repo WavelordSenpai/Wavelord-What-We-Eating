@@ -14,13 +14,23 @@ import androidx.core.app.NotificationCompat;
 public class FloatingBuddyService extends Service {
 
     private static final String CHANNEL_ID = "wavelord_buddy";
-    private FloatingBuddy buddy;
+    private static FloatingBuddy buddy = null;
+    private static boolean buddyCreated = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
         startForeground(1, buildNotification());
+
+        // STATIC GUARD - if Android restarts this Service, do NOT make a 2nd buddy
+        if (buddyCreated && buddy != null) {
+            return;
+        }
+        if (buddyCreated) {
+            return;
+        }
+        buddyCreated = true;
 
         WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         WindowManager.LayoutParams params = FloatingBuddy.createParams();
@@ -47,7 +57,8 @@ public class FloatingBuddyService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        return START_STICKY;
+        // Do NOT recreate buddy here - onCreate already did it once
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -57,6 +68,7 @@ public class FloatingBuddyService extends Service {
             buddy.hide();
             buddy = null;
         }
+        buddyCreated = false;
     }
 
     @Nullable
