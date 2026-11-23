@@ -7,6 +7,7 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const money=n=>'$'+(Math.round(n*100)%100===0?Math.round(n):(+n).toFixed(2));
 const cap=s=>String(s||'').replace(/\b\w/g,c=>c.toUpperCase());
+function timeAgo(iso){if(!iso)return 'never';const s=Math.max(0,(Date.now()-new Date(iso))/1000);if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+' mins ago';if(s<86400)return Math.floor(s/3600)+' hrs ago';return Math.floor(s/86400)+' days ago'}
 function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600)}
 const Store={load(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch(e){return f}},save(k,v){localStorage.setItem(k,JSON.stringify(v))}};
 let spots=Store.load('wwe_spots',null);
@@ -22,21 +23,16 @@ let favs=new Set(Store.load('wwe_favs',[]));let votes=Store.load('wwe_votes',[])
 votes=votes.filter((v,i,a)=>a.findIndex(x=>x.title===v.title)===i);Store.save('wwe_votes',votes);
 let voterId=localStorage.getItem('wwe_voter')||uid();localStorage.setItem('wwe_voter',voterId);
 function saveSpots(){Store.save('wwe_spots',spots)}function saveFavs(){Store.save('wwe_favs',[...favs])}
-// --- ADMIN GATING: Guests CANNOT see Add ---
+// --- ADMIN GATING ---
 let isAdmin = localStorage.getItem('wwe_admin')==='1';
-function updateAdminUI(){
-  const addBtn = document.querySelector('#nav button[data-v="add"]');
-  if(addBtn) addBtn.style.display = isAdmin ? '' : 'none';
-  const addView = $('#v-add');
-  if(!isAdmin && addView?.classList.contains('active')) go('home');
-}
-function unlockAdmin(){ isAdmin=true; localStorage.setItem('wwe_admin','1'); updateAdminUI(); toast('Admin unlocked ✅ Add Spot is now visible'); }
-function lockAdmin(){ isAdmin=false; localStorage.removeItem('wwe_admin'); updateAdminUI(); toast('Admin locked 🔒 Add hidden from guests'); }
+function updateAdminUI(){const addBtn=document.querySelector('#nav button[data-v="add"]');if(addBtn) addBtn.style.display=isAdmin?'':'none';const addView=$('#v-add');if(!isAdmin && addView?.classList.contains('active')) go('home');}
+function unlockAdmin(){isAdmin=true;localStorage.setItem('wwe_admin','1');updateAdminUI();toast('Admin unlocked ✅ Add Spot is now visible');}
+function lockAdmin(){isAdmin=false;localStorage.removeItem('wwe_admin');updateAdminUI();toast('Admin locked 🔒 Add hidden from guests');}
 const CAT_RULES=[['Drinks',/\b(juice|soda|water|coke|pepsi|sorrel|punch|drink|beer|smoothie|coffee|tea|shake|ginger beer|mauby|coconut)\b/i],['Dessert',/\b(cake|ice cream|brownie|pudding|dessert|sweet|cookie|pie|flan)\b/i],['Pizza',/\bpizza|calzone/i],['Roti',/\broti|dhalpuri|dhal puri|paratha|buss ?up ?shut|wrap\b/i],['Doubles',/\bdoubles\b/i],['Seafood',/\b(shrimp|fish|shark|crab|lobster|calamari|seafood|salmon|kingfish|prawn)\b/i],['Breakfast',/\b(breakfast|egg|omelet|omelette|pancake|sausage bake|bake & saltfish|saltfish)\b/i],['Chicken',/\b(chicken|wings?|nuggets?|tenders?)\b/i],['Beef',/\b(beef|burger|steak|smash|patty|bacon|goat|ribs?)\b/i],['Sides',/\b(fries|sides?|salad|rice|coleslaw|plantain|corn|onion rings|chow)\b/i]];
 function categorize(n){for(const [c,re] of CAT_RULES)if(re.test(n||''))return c;return 'Other'}
 function parseMenuText(raw,opts){opts=opts||{};let text=String(raw||'').replace(/TT\s*\$/gi,'$').replace(/\bTTD?\s*(?=\d)/gi,'$').replace(/\$\s+(?=\d)/g,'$');if(opts.ocr)text=text.replace(/(^|\s)S(\d{2,3})(?!\d)/g,'$1$$$2');const items=[],seen=new Set();let ctx=null;const cleanName=n=>n.replace(/^[\s,;|:\-–—.•*_=~]+/,'').replace(/[\s,;|:\-–—.•*_=~…]+$/,'').replace(/\s{2,}/g,' ').trim();const add=(name,price)=>{name=cleanName(name);price=parseFloat(price);if(!/[A-Za-z]{2}/.test(name)||!(price>0&&price<=5000)||name.length>60)return;const key=name.toLowerCase();if(seen.has(key))return;seen.add(key);const c=categorize(name);items.push({name,price,cat:c!=='Other'?c:(ctx||'Other')})};for(let line of text.split(/\r?\n/)){line=line.replace(/^\s*[•·*]\s*/,'').replace(/^\s*\d{1,2}[.)]\s+(?=[A-Za-z])/,'').replace(/[|_=~]{1,}/g,' ').trim();if(!line)continue;if(/^[A-Z][A-Z \-&]{3,}$/.test(line)&&!line.includes('$')){ctx=cap(line.toLowerCase());continue}const re=/\$(\d{1,4}(?:\.\d{1,2})?)/g;const ms=[...line.matchAll(re)];if(ms.length){let prev=0;ms.forEach((m,i)=>{const before=line.slice(prev,m.index);if(cleanName(before))add(before,m[1]);else if(i===ms.length-1)add(line.slice(m.index+m[0].length),m[1]);prev=m.index+m[0].length});continue}const b=line.match(/^(.*[A-Za-z)].*?)[\s.\-–—:…]+(\d{1,4}(?:\.\d{1,2})?)$/);if(b){add(b[1],b[2]);continue}}return items}
 function bestFor(spot,craving){const re=CRAVINGS.find(c=>c.k===craving)?.re;if(!re)return null;let best=null;for(const it of spot.menu)if(re.test(it.name))if(!best||it.price<best.price)best=it;return best}
-function go(v){if(v==='add' && !isAdmin){ toast('🔒 Add is admin-only. Unlock in Settings with PIN.'); v='home'; }$('#buddy')?.classList.remove('open');$('#buddyMenu').style.display='none';document.body.classList.remove('minimized');$('#miniDock').style.display='none';$$('.view').forEach(el=>el.classList.remove('active'));$('#v-'+v)?.classList.add('active');$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));render();if(v==='vote' && liveVoteId){ fetchLiveVote(liveVoteId); startLivePoll(); }window.scrollTo({top:0})}
+function go(v){if(v==='add' && !isAdmin){toast('🔒 Add is admin-only. Unlock in Settings with PIN.');v='home';}$('#buddy')?.classList.remove('open');$('#buddyMenu').style.display='none';document.body.classList.remove('minimized');$('#miniDock').style.display='none';$$('.view').forEach(el=>el.classList.remove('active'));$('#v-'+v)?.classList.add('active');$$('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));render();if(v==='vote' && liveVoteId){fetchLiveVote(liveVoteId);startLivePoll();}window.scrollTo({top:0})}
 function cardHTML(s){const img=s.photos?.[0]?`<img src="${esc(s.photos[0])}" data-photo="${esc(s.photos[0])}" data-spot="${s.id}" alt="">`:`<div style="height:150px;background:linear-gradient(135deg,#ff4d2e,#ff9a00);display:grid;place-items:center;font-size:3rem">🍔</div>`;return `<div class="card"><div data-act="openSpot" data-id="${s.id}">${img}<div class="cardBody"><h3>${esc(s.name)}</h3><p class="mut">${esc(s.area)} • ⭐ ${s.rating} • ${esc(s.hours||'')}</p><p style="margin-top:6px">${s.menu.slice(0,3).map(m=>`<span class="pill">${esc(m.name)} — ${money(m.price)}</span>`).join('')}${s.photos?.length?`<span class="pill">📸 ${s.photos.length} photo${s.photos.length>1?'s':''} — tap to view</span>`:''}</p></div></div><div class="cardBody" style="padding-top:0"><div class="row"><button class="sm primary" data-act="openSpot" data-id="${s.id}">View Menu</button><button class="sm" data-act="fav" data-id="${s.id}" style="background:var(--card2);color:var(--text)">${favs.has(s.id)?'❤️ Saved':'🤍 Save'}</button><button class="sm" data-act="shareSpot" data-id="${s.id}" data-name="${esc(s.name)}" style="background:var(--card2);color:var(--text)">🔗 Share</button></div></div></div>`}
 function getFilteredSpots(){const q=($('#q')?.value||'').trim().toLowerCase();const area=$('#fArea')?.value||'';const sort=$('#fSort')?.value||'rec';const craving=CRAVINGS.find(c=>c.k.toLowerCase()===q);let list=spots.filter(s=>{if(area&&s.area!==area)return false;if(!q)return true;if(craving)return s.menu.some(m=>craving.re.test(m.name)||craving.re.test(m.cat||''));return s.name.toLowerCase().includes(q)||s.menu.some(m=>m.name.toLowerCase().includes(q)||(m.cat||'').toLowerCase().includes(q))});if(sort==='rating')list=[...list].sort((a,b)=>b.rating-a.rating);if(sort==='low')list=[...list].sort((a,b)=>(a.menu[0]?.price||999)-(b.menu[0]?.price||999));return list}
 function renderFiltered(){const list=getFilteredSpots();const home=$('#homeList');if(home)home.innerHTML=`<div class="grid">${list.map(cardHTML).join('')||'<p class="mut">No spots for that yet. Try another craving or clear search.</p>'}</div>`}
@@ -45,7 +41,7 @@ function openSpot(id){const s=spots.find(x=>x.id===id);if(!s)return;$('#modalBod
 let pendingPhotos=[];
 document.getElementById('aPhotos')?.addEventListener('change',e=>{pendingPhotos=[];[...e.target.files].slice(0,5).forEach(f=>{const r=new FileReader();r.onload=()=>{pendingPhotos.push(r.result);$('#aPhotoPrev').innerHTML=pendingPhotos.map(p=>`<img src="${p}">`).join('')};r.readAsDataURL(f)})});
 function saveSpot(){if(!isAdmin) return toast('🔒 Only admin can add spots');const name=$('#aName').value.trim();if(!name)return toast('Add a name first');const menu=parseMenuText($('#aMenu').value);if(!menu.length)return toast('Add menu — e.g. Beef Burger - $85');const s={id:uid(),name,area:$('#aArea').value.trim()||'San Juan',phone:$('#aPhone').value.trim(),rating:4.5,photos:[...pendingPhotos],menu,hours:'See spot for hours'};spots.unshift(s);saveSpots();pendingPhotos=[];$('#aPhotoPrev').innerHTML='';toast('Saved! ✅');go('browse')}
-// --- SCAN MENU: Photo -> scan-menu.js (Groq Vision) -> Auto-fill ---
+// --- SCAN MENU: Camera OR Upload -> scan-menu.js (Groq Vision) ---
 const SCAN_FN = APP.fnBase + '/scan-menu';
 function compressImage(dataUrl, maxW=1200){return new Promise((res)=>{const img=new Image();img.onload=()=>{const scale=Math.min(1, maxW/img.width);const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.8));};img.onerror=()=>res(dataUrl);img.src=dataUrl;});}
 async function loadTesseract(){if(window.Tesseract) return window.Tesseract;return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=()=>res(window.Tesseract);s.onerror=()=>rej(new Error('OCR failed to load'));document.head.appendChild(s);});}
@@ -77,7 +73,10 @@ async function scanMenuFile(file){
     toast(`Scanned ${items.length} items ✅ AI READ`);
   }catch(e){ if(status) status.textContent='Scan failed: '+e.message+'. Try Paste Menu instead.'; toast('Scan failed — try Paste Menu'); }
 }
-document.getElementById('scanInput')?.addEventListener('change',e=>{const f=e.target.files?.[0]; if(!f) return;const r=new FileReader(); r.onload=()=>{ pendingPhotos.push(r.result); $('#aPhotoPrev').innerHTML=pendingPhotos.map(p=>`<img src="${p}">`).join(''); }; r.readAsDataURL(f);scanMenuFile(f); e.target.value='';});
+function handleScanFile(e){const f=e.target.files?.[0]; if(!f) return;const r=new FileReader(); r.onload=()=>{ pendingPhotos.push(r.result); $('#aPhotoPrev').innerHTML=pendingPhotos.map(p=>`<img src="${p}">`).join(''); }; r.readAsDataURL(f);scanMenuFile(f); e.target.value='';}
+document.getElementById('scanInputCamera')?.addEventListener('change', handleScanFile);
+document.getElementById('scanInputUpload')?.addEventListener('change', handleScanFile);
+document.getElementById('scanInput')?.addEventListener('change', handleScanFile);
 function doVoice(target){try{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Voice not supported — type instead');return}const r=new SR();r.lang='en-US';r.onresult=e=>{const txt=e.results[0][0].transcript;if(target==='search'){$('#q').value=txt;renderFiltered()}else{$('#aMenu').value+=('\n'+txt)};toast('Heard: '+txt)};r.onerror=()=>toast('Could not hear — try again');r.start();toast('🎤 Listening…')}catch(e){toast('Voice failed')}}
 function doCompare(){const cr=$('#cCraving').value,ar=$('#cArea').value;let list=spots.map(s=>({s,b:bestFor(s,cr)})).filter(x=>x.b&&(!ar||x.s.area===ar)).sort((a,b)=>a.b.price-b.b.price);$('#compareOut').innerHTML=list.length?`<div class="sec"><table><tr><th>Spot</th><th>Item</th><th>Price</th><th>Photo</th></tr>${list.map(x=>`<tr><td>${esc(x.s.name)}<br><span class="mut">${esc(x.s.area)}</span></td><td>${esc(x.b.name)}</td><td>${money(x.b.price)}</td><td>${x.s.photos?.[0]?`<img src="${esc(x.s.photos[0])}" data-photo="${esc(x.s.photos[0])}" data-spot="${x.s.id}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;cursor:pointer">`:'—'}</td></tr>`).join('')}</table></div>`:`<div class="sec"><p class="mut">No matches.</p></div>`}
 // --- VOTING: LIVE SYNCED via netlify/functions/vote.js ---
@@ -92,9 +91,7 @@ function renderVotes(){
   const counts = liveVote.counts || liveVote.opts.map(()=>0);
   el.innerHTML=`<div class="sec"><h3>${esc(liveVote.title)}</h3><p class="mut">${total} vote${total!==1?'s':''} • 1 per person • LIVE 🔴</p>${liveVote.opts.map((o,oi)=>{const c = counts[oi]||0;const pct = total?Math.round(c/total*100):0;const mine = liveVote.votes?.[voterId]===oi;return `<div class="voteOpt ${mine?'voted':''}" data-act="voteCast" data-oi="${oi}"><span>${esc(o)} ${mine?'✅ You':''}</span><b>${c} (${pct}%)</b></div><div class="bar"><i style="width:${pct}%"></i></div>`}).join('')}<div class="row" style="margin-top:10px"><button class="sm primary" data-act="shareVote">🔗 Share This Vote</button><button class="sm" data-act="clearVote" style="background:var(--card2);color:var(--text)">🗑️ Delete / Start New</button></div><p class="mut" style="margin-top:8px">Vote ID: ${esc(liveVote.id)}</p></div>`;
 }
-async function fetchLiveVote(id){
-  try{const r = await fetch(VOTE_FN+'?id='+encodeURIComponent(id));if(!r.ok) throw new Error('Vote not found');const j = await r.json();liveVote = j; liveVoteId = j.id;localStorage.setItem('wwe_live_vote', j.id);votes = [{ id:j.id, title:j.title, opts:j.opts, votes:j.votes||{} }];Store.save('wwe_votes', votes);renderVotes();return j;}catch(e){ return null }
-}
+async function fetchLiveVote(id){try{const r = await fetch(VOTE_FN+'?id='+encodeURIComponent(id));if(!r.ok) throw new Error('Vote not found');const j = await r.json();liveVote = j; liveVoteId = j.id;localStorage.setItem('wwe_live_vote', j.id);votes = [{ id:j.id, title:j.title, opts:j.opts, votes:j.votes||{} }];Store.save('wwe_votes', votes);renderVotes();return j;}catch(e){ return null }}
 function onVisPoll(){ if(!document.hidden && liveVoteId) fetchLiveVote(liveVoteId); }
 function startLivePoll(){stopLivePoll();if(!liveVoteId) return;fetchLiveVote(liveVoteId);livePollTimer = setInterval(()=>{ if(liveVoteId) fetchLiveVote(liveVoteId); }, 2000);document.removeEventListener('visibilitychange', onVisPoll);document.addEventListener('visibilitychange', onVisPoll);}
 function stopLivePoll(){ if(livePollTimer) clearInterval(livePollTimer); livePollTimer=null; }
@@ -161,7 +158,9 @@ document.addEventListener('click',e=>{
   if(act==='buddyVoice')buddyVoice();
   if(act==='buddyTalk'){openBuddy();return}
   if(act==='pasteMenu'){navigator.clipboard?.readText().then(t=>{$('#aMenu').value=t;toast('Pasted!')}).catch(()=>toast('Paste manually'))}
-  if(act==='scanMenu'){ if(!isAdmin){ toast('🔒 Add is admin-only'); return; } $('#scanInput')?.click(); }
+  if(act==='scanCamera'){ if(!isAdmin){ toast('🔒 Add is admin-only'); return; } $('#scanInputCamera')?.click(); }
+  if(act==='scanUpload'){ if(!isAdmin){ toast('🔒 Add is admin-only'); return; } $('#scanInputUpload')?.click(); }
+  if(act==='scanMenu'){ if(!isAdmin){ toast('🔒 Add is admin-only'); return; } $('#scanInputUpload')?.click(); }
   if(act==='saveSpot')saveSpot();
   if(act==='doCompare')doCompare();
   if(act==='createVote')createVote();
