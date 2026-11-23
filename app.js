@@ -21,6 +21,19 @@ const normArea=s=>String(s||'').split(',')[0].trim();
 function cleanArea(raw){const t=normArea(raw);const found=AREAS.find(a=>t.toLowerCase().includes(a.toLowerCase())||a.toLowerCase().includes(t.toLowerCase()));return found||t||'San Juan';}
 function toast(m){const t=$('#toast');if(!t)return;t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600)}
 const Store={load(k,f){try{return JSON.parse(localStorage.getItem(k))??f}catch(e){return f}},save(k,v){localStorage.setItem(k,JSON.stringify(v))}};
+let __scanBusy=false;
+let __voiceBusy=false;
+function normItemName(n){return String(n||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+function dedupItems(items,existing){
+  const seen=new Set((existing||[]).map(i=>normItemName(i.name)));
+  const out=[];
+  for(const it of (items||[])){
+    const k=normItemName(it.name);
+    if(!k||seen.has(k)) continue;
+    seen.add(k); out.push(it);
+  }
+  return out;
+}
 let spots=Store.load('wwe_spots',null);
 if(!spots){
 spots=[
@@ -68,7 +81,7 @@ useFallbackLoc('Location blocked - using San Juan centre. To use real GPS: tap �
 },{enableHighAccuracy:true,timeout:8000});
 }
 function requestNearForSort(){if(nearMode&&userLoc)return;doNearMe();}
-const CAT_RULES=[['Drinks',/\b(juice|soda|water|coke|pepsi|sorrel|punch|drink|beer|smoothie|coffee|tea|shake|ginger beer|mauby|coconut)\b/i],['Dessert',/\b(cake|ice cream|brownie|pudding|dessert|sweet|cookie|pie|flan)\b/i],['Pizza',/\bpizza|calzone/i],['Roti',/\broti|dhalpuri|dhal puri|paratha|buss ?up ?shut|wrap\b/i],['Doubles',/\bdoubles\b/i],['Seafood',/\b(shrimp|fish|shark|crab|lobster|calamari|seafood|salmon|kingfish|prawn)\b/i],['Breakfast',/\b(breakfast|egg|omelet|omelette|pancake|sausage bake|bake & saltfish|saltfish)\b/i],['Chicken',/\b(chicken|wings?|nuggets?|tenders?)\b/i],['Beef',/\b(beef|burger|steak|smash|patty|bacon|goat|ribs?)\b/i],['Sides',/\b(fries|sides?|salad|rice|coleslaw|plantain|corn|onion rings|chow)\b/i],['Korean',/\b(ramyun|ramen|kimchi|bibimbap|bulgogi|donkatsu|mandu|tofu)\b/i]];
+const CAT_RULES=[['Korean',/\b(ramyun|ramen|kimchi|bibimbap|bulgogi|donkatsu|mandu|tofu)\b/i],['Drinks',/\b(juice|soda|water|coke|pepsi|sorrel|punch|drink|beer|smoothie|coffee|tea|shake|ginger beer|mauby|coconut)\b/i],['Dessert',/\b(cake|ice cream|brownie|pudding|dessert|sweet|cookie|pie|flan)\b/i],['Pizza',/\bpizza|calzone/i],['Roti',/\broti|dhalpuri|dhal puri|paratha|buss ?up ?shut|wrap\b/i],['Doubles',/\bdoubles\b/i],['Seafood',/\b(shrimp|fish|shark|crab|lobster|calamari|seafood|salmon|kingfish|prawn)\b/i],['Breakfast',/\b(breakfast|egg|omelet|omelette|pancake|sausage bake|bake & saltfish|saltfish)\b/i],['Chicken',/\b(chicken|wings?|nuggets?|tenders?)\b/i],['Beef',/\b(beef|burger|steak|smash|patty|bacon|goat|ribs?)\b/i],['Sides',/\b(fries|sides?|salad|rice|coleslaw|plantain|corn|onion rings|chow)\b/i]];
 function categorize(n){for(const [c,re] of CAT_RULES)if(re.test(n||''))return c;return 'Other'}
 function parseMenuText(raw,opts){
 opts=opts||{};
@@ -80,7 +93,7 @@ const cleanName=n=>n.replace(/^[\s,;|:\-–—.•*_=~]+/,'').replace(/[\s,;|:\-
 const add=(name,price)=>{
 name=cleanName(name);price=parseFloat(price);
 if(!/[A-Za-z]{2}/.test(name)||!(price>0&&price<=5000)||name.length>80)return;
-const key=name.toLowerCase();if(seen.has(key))return;seen.add(key);
+const key=normItemName(name);if(seen.has(key))return;seen.add(key);
 const c=categorize(name);items.push({name,price,cat:c!=='Other'?c:(ctx||'Other')});
 };
 for(let line of text.split(/\r?\n/)){
@@ -228,7 +241,8 @@ r.readAsDataURL(f);
 function saveSpot(){
 if(!isAdmin)return toast('🔒 Only admin can add spots');
 const name=$('#aName').value.trim();if(!name)return toast('Add a name first');
-const menu=parseMenuText($('#aMenu').value);if(!menu.length)return toast('Add menu — e.g. Beef Burger - $85');
+const menu=dedupItems(parseMenuText($('#aMenu').value),[]);
+if(!menu.length)return toast('Add menu — e.g. Beef Burger - $85');
 const area=cleanArea($('#aArea').value);
 if(editingId){
 const idx=spots.findIndex(x=>x.id===editingId);
@@ -238,7 +252,7 @@ const s={id:uid(),name,area,phone:$('#aPhone').value.trim(),rating:4.5,photos:[.
 spots.unshift(s);saveSpots();pendingPhotos=[];$('#aPhotoPrev').innerHTML='';toast('Saved! ✅');go('browse');
 }
 const SCAN_FN=APP.fnBase+'/scan-menu';
-function compressImage(dataUrl,maxW=1600){
+function compressImage(dataUrl,maxW=1200){
 return new Promise((res)=>{
 const img=new Image();
 img.onload=()=>{
@@ -246,18 +260,18 @@ const scale=Math.min(1,maxW/img.width);
 const c=document.createElement('canvas');
 c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
 c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-res(c.toDataURL('image/jpeg',0.85));
+res(c.toDataURL('image/jpeg',0.82));
 };
 img.onerror=()=>res(dataUrl);
 img.src=dataUrl;
 });
 }
 async function loadTesseract(){
-if(window.Tesseract)return window.Tesseract;
+if(window.【entity-Tesseract¦canonical_name=Tesseract】)return window.【entity-Tesseract¦canonical_name=Tesseract】;
 return new Promise((res,rej)=>{
 const s=document.createElement('script');
 s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
-s.onload=()=>res(window.Tesseract);
+s.onload=()=>res(window.【entity-Tesseract¦canonical_name=Tesseract】);
 s.onerror=()=>rej(new Error('OCR failed to load'));
 document.head.appendChild(s);
 });
@@ -290,10 +304,9 @@ const r2=await fetch(SCAN_FN,{method:'POST',headers:{'Content-Type':'application
 const j2=await r2.json().catch(()=>({}));
 if(r2.ok && Array.isArray(j2.items)) items=j2.items;
 }
-if(!items.length){
-items=parseMenuText(ocrText,{ocr:true});
+if(!items.length){ items=parseMenuText(ocrText,{ocr:true}); }
 }
-}
+items=dedupItems(items.map(i=>({...i,cat:categorize(i.name)})),[]);
 if(!items.length){
 if(status) status.textContent='Could not read prices. Try a clearer photo, straight-on, good light.';
 toast('Could not read prices — try clearer photo');
@@ -309,23 +322,60 @@ toast('Scan failed — try Paste Menu');
 }
 function handleScanFile(e){
 const f=e.target.files?.[0];if(!f)return;
+e.target.value='';
+if(__scanBusy){toast('Already scanning… wait');return;}
+__scanBusy=true;
 const r=new FileReader();
 r.onload=()=>{pendingPhotos.push(r.result);$('#aPhotoPrev').innerHTML=pendingPhotos.map(p=>`<img src="${p}">`).join('');};
 r.readAsDataURL(f);
-scanMenuFile(f);
-e.target.value='';
+scanMenuFile(f).finally(()=>{__scanBusy=false;});
 }
 document.getElementById('scanInputCamera')?.addEventListener('change',handleScanFile);
 document.getElementById('scanInputUpload')?.addEventListener('change',handleScanFile);
+async function voiceToTextViaGroq(){
+  if(!navigator.mediaDevices?.getUserMedia) return null;
+  if(__voiceBusy) return null;
+  __voiceBusy=true;
+  toast('🎤 Listening… speak now');
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mime=MediaRecorder.isTypeSupported('audio/webm')?'audio/webm':'audio/mp4';
+    const rec=new MediaRecorder(stream,{mimeType:mime});
+    const chunks=[];
+    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    const done=new Promise(res=>rec.onstop=res);
+    rec.start();
+    setTimeout(()=>{if(rec.state==='recording')rec.stop();},12000);
+    const stopEarly=()=>{if(rec.state==='recording')rec.stop();};
+    document.addEventListener('click',stopEarly,{once:true});
+    await done;
+    stream.getTracks().forEach(t=>t.stop());
+    if(!chunks.length) return null;
+    const blob=new Blob(chunks,{type:mime});
+    const base64=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(blob);});
+    const r=await fetch(APP.fnBase+'/transcribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({audio:base64,mime})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||'Voice failed');
+    return (j.text||'').trim();
+  }catch(e){toast('Voice: '+e.message);return null;}
+  finally{__voiceBusy=false;}
+}
 function doVoice(target){
-try{
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR){toast('Voice not supported — type instead');return}
-const r=new SR();r.lang='en-US';
-r.onresult=e=>{const txt=e.results[0][0].transcript;if(target==='search'){$('#q').value=txt;renderFiltered()}else{$('#aMenu').value+=('\n'+txt)};toast('Heard: '+txt)};
-r.onerror=()=>toast('Could not hear — try again');
-r.start();toast('🎤 Listening…');
-}catch(e){toast('Voice failed')}
+  voiceToTextViaGroq().then(txt=>{
+    if(txt){
+      if(target==='search'){$('#q').value=txt;renderFiltered();}
+      else{$('#aMenu').value+=('\n'+txt);}
+      toast('Heard: '+txt); return;
+    }
+    try{
+      const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+      if(!SR){toast('Voice not supported — type instead');return;}
+      const r=new SR();r.lang='en-US';
+      r.onresult=e=>{const t=e.results[0][0].transcript;if(target==='search'){$('#q').value=t;renderFiltered();}else{$('#aMenu').value+=('\n'+t);};toast('Heard: '+t);};
+      r.onerror=()=>toast('Could not hear — try again');
+      r.start();toast('🎤 Listening…');
+    }catch(e){toast('Voice failed');}
+  });
 }
 function doCompare(){
 const cr=$('#cCraving').value,ar=$('#cArea').value;
@@ -516,15 +566,7 @@ thinking.textContent='Wave Buddy couldn\'t reach Groq: '+e.message+'. Check Netl
 }
 $('#buddyForm')?.addEventListener('submit',e=>{e.preventDefault();const v=$('#buddyInput').value.trim();if(!v)return;$('#buddyInput').value='';buddyAsk(v)});
 function buddyVoice(){
-try{
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-if(!SR){toast('Voice not supported — type instead');return}
-const r=new SR();r.lang='en-US';
-toast('🎤 Listening to Buddy… speak now');
-r.onresult=e=>{const txt=e.results[0][0].transcript;buddyAsk(txt)};
-r.onerror=()=>toast('Could not hear — try again');
-r.start();
-}catch(e){toast('Voice failed')}
+  voiceToTextViaGroq().then(txt=>{if(txt) buddyAsk(txt);});
 }
 $('#modal')?.addEventListener('click',e=>{if(e.target.id==='modal')closeModalFn();});
 document.addEventListener('click',e=>{
