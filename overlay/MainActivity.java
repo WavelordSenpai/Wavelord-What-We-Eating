@@ -10,9 +10,10 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     private static final int OVERLAY_REQUEST_CODE = 1001;
+    private static boolean buddyStarted = false;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         checkAndStartBuddy();
     }
@@ -20,9 +21,6 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
-        if (Settings.canDrawOverlays(this)) {
-            startBuddyService();
-        }
     }
 
     @Override
@@ -36,6 +34,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void checkAndStartBuddy() {
+        if (buddyStarted) return;
         if (Settings.canDrawOverlays(this)) {
             startBuddyService();
         } else {
@@ -52,6 +51,8 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void startBuddyService() {
+        if (buddyStarted) return;
+        buddyStarted = true;
         try {
             Intent serviceIntent = new Intent(this, FloatingBuddyService.class);
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -60,6 +61,7 @@ public class MainActivity extends BridgeActivity {
                 startService(serviceIntent);
             }
         } catch (Exception e) {
+            buddyStarted = false;
             e.printStackTrace();
         }
     }
