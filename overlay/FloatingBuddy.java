@@ -3,6 +3,7 @@ package com.wavelord.whatweeating;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -21,6 +22,9 @@ public class FloatingBuddy {
     private boolean isShowing = false;
     private boolean isExpanded = false;
 
+    // GLOBAL guard - even if Service makes a 2nd FloatingBuddy object, it can't make a 2nd bubble
+    private static boolean globalBubbleShowing = false;
+
     public FloatingBuddy(Context context, WindowManager windowManager, WindowManager.LayoutParams params) {
         this.context = context;
         this.windowManager = windowManager;
@@ -29,19 +33,28 @@ public class FloatingBuddy {
 
     public void show() {
         if (isShowing) return;
+        if (globalBubbleShowing) return;
         bubbleView = makeBubble();
-        windowManager.addView(bubbleView, params);
+        try {
+            windowManager.addView(bubbleView, params);
+        } catch (Exception e) {
+            return;
+        }
         isShowing = true;
+        globalBubbleShowing = true;
     }
 
     public void hide() {
-        if (!isShowing) return;
+        if (!isShowing && !globalBubbleShowing) return;
         try {
             if (isExpanded && menuView != null) windowManager.removeView(menuView);
             if (bubbleView != null) windowManager.removeView(bubbleView);
         } catch (Exception e) {}
+        bubbleView = null;
+        menuView = null;
         isShowing = false;
         isExpanded = false;
+        globalBubbleShowing = false;
     }
 
     private View makeBubble() {
@@ -70,7 +83,7 @@ public class FloatingBuddy {
                     case MotionEvent.ACTION_MOVE:
                         params.x = lastX + (int) (event.getRawX() - downX);
                         params.y = lastY + (int) (event.getRawY() - downY);
-                        windowManager.updateViewLayout(bubbleView, params);
+                        try { windowManager.updateViewLayout(bubbleView, params); } catch (Exception e) {}
                         return true;
                     case MotionEvent.ACTION_UP:
                         if (System.currentTimeMillis() - downTime < 200
@@ -117,15 +130,16 @@ public class FloatingBuddy {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             params.type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            android.graphics.PixelFormat.TRANSLUCENT
+            // THIS IS THE TAP FIX - menu must not eat taps outside itself
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
         );
         menuParams.gravity = Gravity.TOP | Gravity.START;
         menuParams.x = params.x;
         menuParams.y = params.y + 120;
 
         menuView = menu;
-        windowManager.addView(menuView, menuParams);
+        try { windowManager.addView(menuView, menuParams); } catch (Exception e) { return; }
         isExpanded = true;
     }
 
@@ -149,7 +163,7 @@ public class FloatingBuddy {
     private void openApp() {
         Intent launch = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
         if (launch != null) {
-            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             context.startActivity(launch);
         }
     }
@@ -162,8 +176,9 @@ public class FloatingBuddy {
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             type,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            android.graphics.PixelFormat.TRANSLUCENT
+            // Bubble must never steal focus / block app taps
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
         );
         p.gravity = Gravity.TOP | Gravity.START;
         p.x = 0;
