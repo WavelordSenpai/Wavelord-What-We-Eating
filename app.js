@@ -27,7 +27,7 @@ let isAdmin = localStorage.getItem('wwe_admin')==='1';
 function updateAdminUI(){const addBtn=document.querySelector('#nav button[data-v="add"]');if(addBtn) addBtn.style.display=isAdmin?'':'none';const addView=$('#v-add');if(!isAdmin && addView?.classList.contains('active')) go('home');}
 function unlockAdmin(){isAdmin=true;localStorage.setItem('wwe_admin','1');updateAdminUI();toast('Admin unlocked ✅ Add Spot is now visible');}
 function lockAdmin(){isAdmin=false;localStorage.removeItem('wwe_admin');updateAdminUI();toast('Admin locked 🔒 Add hidden from guests');}
-// --- REAL NEAR ME - ADDED, replaces fake toast ---
+function killSplash(){const s=$('#splash');if(s){s.classList.add('done');s.style.display='none'}}
 const AREA_COORDS={'San Juan':[10.6500,-61.4500],'Port of Spain':[10.6500,-61.5167],'St James':[10.6667,-61.5333],'Westmoorings':[10.6667,-61.5500],'Chaguanas':[10.5167,-61.4167],'Couva':[10.4167,-61.4500],'Arima':[10.6333,-61.2833],'Sangre Grande':[10.5833,-61.1333],'San Fernando':[10.2833,-61.4667],'Point Fortin':[10.1667,-61.6667],'Tobago':[11.2500,-60.6667],'Curepe':[10.6333,-61.4000],'Tunapuna':[10.6333,-61.3833],'Diego Martin':[10.7167,-61.5500],'Barataria':[10.6500,-61.4667],'Morvant':[10.6500,-61.4833]};
 let userLoc=null;let nearMode=false;
 function distKm(a,b,c,d){const R=6371,dLat=(c-a)*Math.PI/180,dLng=(d-b)*Math.PI/180;const h=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(h));}
@@ -52,19 +52,18 @@ function getFilteredSpots(){
   const craving=CRAVINGS.find(c=>c.k.toLowerCase()===q);
   let list=spots.filter(s=>{
     if(area&&s.area!==area)return false;
-    // PRICE FILTER - REAL NOW
     if(price){
       const cheapest=Math.min(...s.menu.map(m=>m.price));
-      if(price==='1' && cheapest>35) return false; // $ Cheap = cheapest item $35 or less
-      if(price==='2' && (cheapest<36 || cheapest>80)) return false; // $$ Mid = $36 - $80
-      if(price==='3' && cheapest<=80) return false; // $$$ Fancy = cheapest item over $80
+      if(price==='1' && cheapest>35) return false;
+      if(price==='2' && (cheapest<36 || cheapest>80)) return false;
+      if(price==='3' && cheapest<=80) return false;
     }
     if(!q)return true;
     if(craving)return s.menu.some(m=>craving.re.test(m.name)||craving.re.test(m.cat||''));
     return s.name.toLowerCase().includes(q)||s.menu.some(m=>m.name.toLowerCase().includes(q)||(m.cat||'').toLowerCase().includes(q))
   });
   if(sort==='near'){
-    if(!nearMode && userLoc===null){ doNearMe(null); return list; }
+    if(!nearMode){ doNearMe(null); return list; }
     if(nearMode && userLoc){ list=[...list].sort((a,b)=>(spotDist(a)??999)-(spotDist(b)??999)); }
   } else if(nearMode && userLoc){
     list=[...list].sort((a,b)=>(spotDist(a)??999)-(spotDist(b)??999));
@@ -82,7 +81,7 @@ document.getElementById('aPhotos')?.addEventListener('change',e=>{pendingPhotos=
 function saveSpot(){if(!isAdmin) return toast('🔒 Only admin can add spots');const name=$('#aName').value.trim();if(!name)return toast('Add a name first');const menu=parseMenuText($('#aMenu').value);if(!menu.length)return toast('Add menu — e.g. Beef Burger - $85');const s={id:uid(),name,area:$('#aArea').value.trim()||'San Juan',phone:$('#aPhone').value.trim(),rating:4.5,photos:[...pendingPhotos],menu,hours:'See spot for hours'};spots.unshift(s);saveSpots();pendingPhotos=[];$('#aPhotoPrev').innerHTML='';toast('Saved! ✅');go('browse')}
 const SCAN_FN = APP.fnBase + '/scan-menu';
 function compressImage(dataUrl, maxW=1200){return new Promise((res)=>{const img=new Image();img.onload=()=>{const scale=Math.min(1, maxW/img.width);const c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.8));};img.onerror=()=>res(dataUrl);img.src=dataUrl;});}
-async function loadTesseract(){if(window.【entity-Tesseract¦canonical_name=Tesseract】) return window.【entity-Tesseract¦canonical_name=Tesseract】;return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=()=>res(window.【entity-Tesseract¦canonical_name=Tesseract】);s.onerror=()=>rej(new Error('OCR failed to load'));document.head.appendChild(s);});}
+async function loadTesseract(){if(window.Tesseract) return window.Tesseract;return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=()=>res(window.Tesseract);s.onerror=()=>rej(new Error('OCR failed to load'));document.head.appendChild(s);});}
 async function scanMenuFile(file){
   const status=$('#scanStatus');if(status) status.textContent='📸 AI READ… reading menu, please wait…';
   try{
@@ -183,7 +182,7 @@ document.addEventListener('click',e=>{
   if(photo){e.stopPropagation();const spot=spots.find(s=>s.id===photo.dataset.spot);if(spot&&spot.photos?.length){const idx=spot.photos.indexOf(photo.dataset.photo);openLightbox(spot.photos,idx>=0?idx:0)}else{openLightbox([photo.dataset.photo],0)}return}
   if(e.target.id==='lightbox'){closeLightbox();return}
   const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act;
-  if(act==='skipSplash'){$('#splash').classList.add('done');return}
+  if(act==='skipSplash'){killSplash();return}
   if(act==='go')go(b.dataset.v);
   if(act==='openSpot')openSpot(b.dataset.id);
   if(act==='closeModal')$('#modal').classList.remove('open');
@@ -227,4 +226,4 @@ function killNetlify(){document.querySelectorAll('a,div,span,button,iframe').for
 new MutationObserver(killNetlify).observe(document.body,{childList:true,subtree:true});
 setInterval(killNetlify,800);killNetlify();
 function showOnboard(force){const ob=$('#onboard');if(!force&&localStorage.getItem('wwe_seen'))return;ob.classList.add('show');let step=0;const steps=[{em:'🔍',h:'Search what yuh feeling for',p:'Type beef, roti, doubles, pizza…'},{em:'⚖️',h:'Compare before yuh spend',p:'See best value in a table.'},{em:'🗳️',h:'Vote with family',p:'1 vote per person. Share the link.'}];const paint=()=>{const s=steps[step];$('#obEm').textContent=s.em;$('#obH').textContent=s.h;$('#obP').textContent=s.p};paint();$('#obBtn').onclick=()=>{step++;if(step>=steps.length){ob.classList.remove('show');localStorage.setItem('wwe_seen','1')}else paint()};document.querySelector('[data-act="obSkip"]').onclick=()=>{ob.classList.remove('show');localStorage.setItem('wwe_seen','1')}}
-(function(){const fa=$('#fArea'),ca=$('#cArea'),cc=$('#cCraving');fa.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');ca.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');cc.innerHTML=CRAVINGS.map(c=>`<option>${c.k}</option>`).join('');setupChips();showOnboard(false);render();updateAdminUI();setTimeout(()=>{$('#splash').classList.add('done')},6000);if(liveVoteId) fetchLiveVote(liveVoteId).then(()=>startLivePoll());handleSharedVote();})();
+(function(){const fa=$('#fArea'),ca=$('#cArea'),cc=$('#cCraving');fa.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');ca.innerHTML='<option value="">All areas</option>'+AREAS.map(a=>`<option>${a}</option>`).join('');cc.innerHTML=CRAVINGS.map(c=>`<option>${c.k}</option>`).join('');setupChips();showOnboard(false);render();updateAdminUI();setTimeout(()=>{killSplash()},4000);document.getElementById('splash')?.addEventListener('click',()=>{killSplash()});if(liveVoteId) fetchLiveVote(liveVoteId).then(()=>startLivePoll());handleSharedVote();})();
