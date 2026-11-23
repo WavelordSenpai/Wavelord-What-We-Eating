@@ -102,9 +102,12 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleRelease --stacktrace
+          echo "=== WHAT DID GRADLE ACTUALLY MAKE? ==="
+          find app/build -name "*.apk" -ls
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: what-we-eating-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
