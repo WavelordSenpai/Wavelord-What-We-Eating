@@ -62,3 +62,15 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
 #lightboxImg{max-width:94vw;max-height:78vh;border-radius:12px;object-fit:contain}
 a[href*="netlify"],div[class*="netlify"],iframe[src*="netlify"],[id*="netlify"]{display:none!important;visibility:hidden!important;pointer-events:none!important}
 #netlify-badge,.netlify-badge{display:none!important}
+/* ===== FIX ADDED - dropdowns / chips overlapping - DO NOT DELETE ===== */
+.filterRow{flex-wrap:nowrap;gap:6px}
+.filterRow select{flex:1 1 0;min-width:0;font-size:.82rem;padding:10px 4px 10px 8px}
+.filterRow select:first-child{flex:1.25 1 0}
+#v-compare .row{flex-wrap:nowrap;gap:6px}
+#v-compare .row select{flex:1 1 0;min-width:0}
+#buddyFab{bottom:calc(var(--nav) + 18px)!important}
+@media(max-width:380px){
+  .filterRow select{font-size:.76rem;padding:9px 2px 9px 6px}
+  .chip{font-size:.75rem;padding:6px 9px}
+  #top h1{font-size:1.3rem}
+                                    }
