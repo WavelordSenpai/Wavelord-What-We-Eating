@@ -37,15 +37,12 @@ select{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ro
 #splashTitle{font-size:2.6rem;font-weight:900;line-height:.95;color:#fff}.by{letter-spacing:.3em;font-weight:800;font-size:.8rem}#tapEat{background:#111;color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;margin-top:8px;position:relative;z-index:10;pointer-events:auto}
 #onboard{position:fixed;inset:0;z-index:190;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:12px}
 #onboard.show{display:flex}.em{font-size:3rem}
-#buddyFab{position:fixed;right:14px;bottom:calc(var(--nav) + 90px);z-index:90;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.5rem;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;place-items:center}
-#buddyMenu{position:fixed;z-index:210;background:#1c1c22;border:1px solid var(--line);border-radius:14px;padding:8px;display:none;min-width:210px;right:12px;bottom:calc(var(--nav) + 150px);box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#buddyFab{position:fixed;left:14px;right:auto;bottom:calc(var(--nav) + 90px);z-index:320;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.5rem;box-shadow:0 8px 22px rgba(0,0,0,.5);display:grid;place-items:center}
+#buddyMenu{position:fixed;z-index:330;background:#1c1c22;border:1px solid var(--line);border-radius:14px;padding:8px;display:none;min-width:210px;left:12px;right:auto;bottom:calc(var(--nav) + 150px);box-shadow:0 10px 30px rgba(0,0,0,.6)}
 #buddyMenu button{display:block;width:100%;text-align:left;background:transparent;color:var(--text);padding:12px;border-radius:10px}
-#miniDock{position:fixed;left:12px;right:12px;bottom:calc(68px + 12px);z-index:120;background:#1c1c22;border:1px solid #33333c;border-radius:999px;padding:6px;display:none;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#miniDock{position:fixed;left:12px;right:12px;bottom:calc(68px + 12px);z-index:300;background:#1c1c22;border:1px solid #33333c;border-radius:999px;padding:6px;display:none;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
 #miniDock button{flex:1;background:#2a2a33;color:#fff;padding:10px 4px;border-radius:999px;font-size:.8rem}
-body.minimized #appShell{display:block!important}
-body.minimized #buddy{display:none!important}
-body.minimized #miniDock{display:flex!important}
-#buddy{position:fixed;right:12px;bottom:calc(var(--nav) + 78px);z-index:190;width:min(380px,calc(100vw - 24px));max-height:62vh;background:var(--card);border:1px solid var(--line);border-radius:18px;display:none;flex-direction:column;overflow:hidden}
+#buddy{position:fixed;right:12px;bottom:calc(var(--nav) + 78px);z-index:310;width:min(380px,calc(100vw - 24px));max-height:62vh;background:var(--card);border:1px solid var(--line);border-radius:18px;display:none;flex-direction:column;overflow:hidden}
 #buddy.open{display:flex}#buddyHead{padding:12px;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-weight:900;display:flex;justify-content:space-between}
 #buddyMsgs{padding:12px;overflow:auto;display:flex;flex-direction:column;gap:8px;min-height:180px}
 .msg{padding:9px 11px;border-radius:12px;max-width:88%;font-size:.9rem;white-space:pre-line}.msg.me{align-self:flex-end;background:var(--red)}.msg.bot{background:var(--card2);border:1px solid var(--line)}
@@ -54,7 +51,7 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
 .voteOpt{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;display:flex;justify-content:space-between;gap:8px;width:100%;box-sizing:border-box}
 .voteOpt.voted{border-color:var(--green);background:#122a1a}.voteOpt span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.voteOpt b{flex-shrink:0;white-space:nowrap}
 .bar{height:8px;background:var(--card2);border-radius:999px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--orange)}
-.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 20px);transform:translateX(-50%);background:#111;border:1px solid var(--line);padding:10px 14px;border-radius:999px;z-index:250;font-size:.85rem;display:none}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav) + 20px);transform:translateX(-50%);background:#111;border:1px solid var(--line);padding:10px 14px;border-radius:999px;z-index:350;font-size:.85rem;display:none}
 .modal{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center}
 .modal.open{display:flex}.sheet{background:var(--card);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
 .photoRow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.photoRow img{width:90px;height:90px;object-fit:cover;border-radius:10px;cursor:pointer;border:2px solid transparent}
@@ -73,3 +70,14 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
 #splash .stage{pointer-events:none}
 #splash .steam{pointer-events:none}
 #homeList{min-height:80px}
+#trendSec .sec,#top10Sec .sec{overflow:hidden}
+#trendSec .sub,#top10Sec p{white-space:normal!important;overflow-wrap:break-word;word-break:break-word}
+#homeList .cardBody h3{white-space:normal!important}
+/* BUDDY FLOATS OUTSIDE APP WHEN MINIMIZED - app lives inside Buddy */
+body.minimized #appShell{display:none!important}
+body.minimized #buddy{display:none}
+body.minimized #buddy.open{display:flex!important}
+body.minimized #buddyMenu{display:none}
+body.minimized #miniDock{display:flex!important}
+body.minimized #buddyFab{display:grid!important}
+body.minimized #toast{bottom:120px!important}
