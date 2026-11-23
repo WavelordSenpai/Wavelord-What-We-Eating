@@ -1,13 +1,14 @@
 name: Build APK
 
-"on":
+on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,63 +16,83 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '20'
 
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: 17
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: Install deps + TypeScript
-        run: |
-          npm install
-          npm install --save-dev typescript
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Verify Capacitor Config
-        run: |
-          echo "--- capacitor.config.ts ---"
-          cat capacitor.config.ts
-          echo "--- check for old json ---"
-          ls -la capacitor.config.* || true
-          rm -f capacitor.config.json
-          echo "Deleted capacitor.config.json if it existed"
+      - name: Install dependencies
+        run: npm ci || npm install
 
-      - name: Build www folder for Capacitor
+      # --- 1. Build www/ ---
+      - name: Build www folder
         run: |
-          rm -rf www
-          mkdir -p www/assets
-          cp index.html www/ || true
+          mkdir -p www www/assets
+          cp index.html www/
           cp app.js www/ || true
           cp style.css www/ || true
-          cp sw.js www/ || true
           cp manifest.json www/ || true
-          cp -r assets/* www/assets/ || true
-          echo "--- www contents ---"
-          ls -R www
-          test -f www/index.html || (echo "ERROR: www/index.html missing" && exit 1)
+          cp sw.js www/ || true
+          # COPY ICONS - this was missing before
+          cp icon-512.png www/ || true
+          cp icon-192.png www/ || true
+          cp icon-512.png www/assets/icon-512.png || true
+          cp icon-192.png www/assets/icon-192.png || true
+          cp -r assets/* www/assets/ 2>/dev/null || true
+          ls -lh www/ www/assets/
 
-      - name: Add Android platform if missing
+      # --- 2. Capacitor ---
+      - name: Capacitor add + sync
         run: |
-          if [ ! -d "android" ]; then npx cap add android; fi
+          npx cap add android || true
           npx cap sync android
 
-      - name: Copy overlay files into Android project
+      # --- 3. Generate Android mipmap icons from icon-512.png ---
+      - name: Generate Android launcher icons
         run: |
-          mkdir -p android/app/src/main/java/com/wavelord/whatweeating
-          cp overlay/MainActivity.java android/app/src/main/java/com/wavelord/whatweeating/MainActivity.java || true
-          cp overlay/FloatingBuddy.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddy.java || true
-          cp overlay/FloatingBuddyService.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddyService.java || true
-          cp overlay/AndroidManifest.xml android/app/src/main/AndroidManifest.xml || true
+          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick > /dev/null
+          SRC="icon-512.png"
+          if [ ! -f "$SRC" ]; then SRC="assets/icon-512.png"; fi
+          echo "Using icon source: $SRC"
+          for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
+            density="${spec%%:*}"
+            size="${spec##*:}"
+            mkdir -p android/app/src/main/res/mipmap-$density
+            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher.png
+            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher_round.png
+            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
+          done
+          # Also copy to root res for safety
+          mkdir -p android/app/src/main/res/drawable
+          cp "$SRC" android/app/src/main/res/drawable/ic_launcher.png || true
+          ls -R android/app/src/main/res/mipmap-*
 
-      - name: Build Debug APK
+      # --- 4. Overlay your custom files ---
+      - name: Apply overlay
+        run: |
+          # Your fixed AndroidManifest with android:icon
+          cp overlay/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          # Your Java files
+          mkdir -p android/app/src/main/java/com/wavelord/whatweeating
+          cp overlay/*.java android/app/src/main/java/com/wavelord/whatweeating/ 2>/dev/null || true
+          cp *.java android/app/src/main/java/com/wavelord/whatweeating/ 2>/dev/null || true
+          ls -lh android/app/src/main/java/com/wavelord/whatweeating/
+
+      # --- 5. Build ---
+      - name: Build Release APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: what-we-eating-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/release/app-release.apk
