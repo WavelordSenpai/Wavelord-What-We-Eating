@@ -21,7 +21,7 @@ select{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ro
 .card img{width:100%;height:150px;object-fit:cover;display:block;background:#222;cursor:pointer}
 .cardBody{padding:12px}.mut{color:var(--mut);font-size:.82rem}
 .pill{display:inline-block;background:var(--card2);border:1px solid var(--line);padding:3px 8px;border-radius:999px;font-size:.75rem;margin:2px 2px 0 0}
-#nav{position:fixed;left:0;right:0;bottom:0;z-index:100;background:#17171d;border-top:1px solid var(--line);padding:6px 6px calc(12px + env(safe-area-inset-bottom));display:flex}
+#nav{position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#17171d;border-top:1px solid var(--line);padding:6px 6px calc(12px + env(safe-area-inset-bottom));display:flex}
 #nav button{flex:1;background:transparent;color:var(--mut);padding:8px 2px;font-size:.7rem;display:flex;flex-direction:column;gap:2px;align-items:center}
 #nav button.on{color:var(--orange)}#nav button span{font-size:1.3rem}
 .view{display:none}.view.active{display:block}
@@ -37,8 +37,8 @@ select{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}.ro
 #splashTitle{font-size:2.6rem;font-weight:900;line-height:.95;color:#fff}.by{letter-spacing:.3em;font-weight:800;font-size:.8rem}#tapEat{background:#111;color:#fff;padding:14px 22px;border-radius:999px;font-weight:900;margin-top:8px;position:relative;z-index:5}
 #onboard{position:fixed;inset:0;z-index:190;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;gap:12px}
 #onboard.show{display:flex}.em{font-size:3rem}
-#buddyFab{position:fixed;right:14px;bottom:calc(var(--nav) + 14px);z-index:90;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.6rem;box-shadow:0 8px 22px rgba(0,0,0,.5);touch-action:none;display:grid;place-items:center}
-#buddyMenu{position:fixed;z-index:210;background:#1c1c22;border:1px solid var(--line);border-radius:14px;padding:8px;display:none;min-width:210px;right:12px;bottom:calc(var(--nav) + 78px);box-shadow:0 10px 30px rgba(0,0,0,.6)}
+#buddyFab{position:fixed;right:14px;bottom:calc(var(--nav) + 90px);z-index:90;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#ff4d2e,#ff9a00);font-size:1.5rem;box-shadow:0 8px 22px rgba(0,0,0,.5);touch-action:none;display:grid;place-items:center}
+#buddyMenu{position:fixed;z-index:210;background:#1c1c22;border:1px solid var(--line);border-radius:14px;padding:8px;display:none;min-width:210px;right:12px;bottom:calc(var(--nav) + 150px);box-shadow:0 10px 30px rgba(0,0,0,.6)}
 #buddyMenu button{display:block;width:100%;text-align:left;background:transparent;color:var(--text);padding:12px;border-radius:10px}
 #miniDock{position:fixed;left:12px;right:12px;bottom:calc(68px + 12px);z-index:120;background:#1c1c22;border:1px solid #33333c;border-radius:999px;padding:6px;display:none;gap:6px;box-shadow:0 10px 30px rgba(0,0,0,.6)}
 #miniDock button{flex:1;background:#2a2a33;color:#fff;padding:10px 4px;border-radius:999px;font-size:.8rem}
@@ -60,24 +60,22 @@ table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;bor
 .photoRow{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.photoRow img{width:90px;height:90px;object-fit:cover;border-radius:10px;cursor:pointer;border:2px solid transparent}
 #lightbox{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;flex-direction:column}
 #lightboxImg{max-width:94vw;max-height:78vh;border-radius:12px;object-fit:contain}
-a[href*="netlify"],div[class*="netlify"],iframe[src*="netlify"],[id*="netlify"]{display:none!important;visibility:hidden!important;pointer-events:none!important}
-#netlify-badge,.netlify-badge{display:none!important}
-/* ===== FIX ADDED - dropdowns / chips overlapping - DO NOT DELETE ===== */
 .filterRow{flex-wrap:nowrap;gap:6px}
 .filterRow select{flex:1 1 0;min-width:0;font-size:.82rem;padding:10px 4px 10px 8px}
 .filterRow select:first-child{flex:1.25 1 0}
 #v-compare .row{flex-wrap:nowrap;gap:6px}
 #v-compare .row select{flex:1 1 0;min-width:0}
-#buddyFab{bottom:calc(var(--nav) + 18px)!important}
 @media(max-width:380px){
   .filterRow select{font-size:.76rem;padding:9px 2px 9px 6px}
   .chip{font-size:.75rem;padding:6px 9px}
   #top h1{font-size:1.3rem}
 }
-/* ===== EMERGENCY SPLASH FIX - splash can never trap you ===== */
 #splash{animation:splashKill 0.5s ease 8s forwards}
 @keyframes splashKill{to{opacity:0;visibility:hidden;pointer-events:none}}
 #splash.done{animation:none}
 #tapEat{position:relative;z-index:10;pointer-events:auto}
 #splash .stage{pointer-events:none}
 #splash .steam{pointer-events:none}
+a[href*="netlify"],div[class*="netlify"],iframe[src*="netlify"],[id*="netlify"],[class*="netlify-badge"],#netlify-badge,.netlify-badge{display:none!important;visibility:hidden!important;pointer-events:none!important;opacity:0!important;height:0!important;width:0!important}
+#homeList{min-height:80px}
+#homeList:empty::after{content:"Loading spots…";color:var(--mut);font-size:.85rem}
