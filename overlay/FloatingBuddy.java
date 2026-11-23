@@ -16,12 +16,11 @@ public class FloatingBuddy {
     private final WindowManager windowManager;
     private final WindowManager.LayoutParams params;
 
-    private View bubbleView;      // collapsed bubble 🍔
-    private View menuView;        // expanded hamburger menu
+    private View bubbleView;
+    private View menuView;
     private boolean isShowing = false;
     private boolean isExpanded = false;
 
-    // ✅ Service calls this: Context + WindowManager + LayoutParams
     public FloatingBuddy(Context context, WindowManager windowManager, WindowManager.LayoutParams params) {
         this.context = context;
         this.windowManager = windowManager;
@@ -74,7 +73,6 @@ public class FloatingBuddy {
                         windowManager.updateViewLayout(bubbleView, params);
                         return true;
                     case MotionEvent.ACTION_UP:
-                        // Tap = expand, Drag = move
                         if (System.currentTimeMillis() - downTime < 200
                             && Math.abs(event.getRawX() - downX) < 10
                             && Math.abs(event.getRawY() - downY) < 10) {
@@ -172,4 +170,4 @@ public class FloatingBuddy {
         p.y = 300;
         return p;
     }
-            }
+}
