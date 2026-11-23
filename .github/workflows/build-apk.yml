@@ -24,23 +24,73 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Android SDK
+      # NO setup-android@v3 HERE - GitHub runner already has SDK
+      # This is the fix for "Failed to find package 'tools'"
+      - name: Setup Android SDK - use preinstalled SDK
         run: |
-          echo "ANDROID_HOME=$HOME/Android/Sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$HOME/Android/Sdk" >> $GITHUB_ENV
-          echo "$HOME/Android/Sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/Android/Sdk/platform-tools" >> $GITHUB_PATH
-          mkdir -p $HOME/Android/Sdk/cmdline-tools
-          cd $HOME/Android/Sdk/cmdline-tools
-          if [ ! -d "latest" ]; then
-            curl -o cmdtools.zip -L https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-            unzip -q cmdtools.zip
-            mv cmdline-tools latest
-            rm cmdtools.zip
-          fi
-          cd $GITHUB_WORKSPACE
-          yes | $HOME/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null || true
-          $HOME/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "SDK is at: $ANDROID_HOME"
+          ls $ANDROID_HOME
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Install dependencies
         run: npm ci || npm install
+
+      - name: Build www folder
+        run: |
+          mkdir -p www www/assets
+          cp index.html www/
+          cp app.js www/ || true
+          cp style.css www/ || true
+          cp manifest.json www/ || true
+          cp sw.js www/ || true
+          cp icon-512.png www/ || true
+          cp icon-192.png www/ || true
+          cp icon-512.png www/assets/icon-512.png || true
+          cp icon-192.png www/assets/icon-192.png || true
+          cp -r assets/* www/assets/ 2>/dev/null || true
+          ls -lh www/ www/assets/
+
+      - name: Capacitor add + sync
+        run: |
+          npx cap add android || true
+          npx cap sync android
+
+      - name: Generate Android launcher icons
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick > /dev/null
+          SRC="icon-512.png"
+          if [ ! -f "$SRC" ]; then SRC="assets/icon-512.png"; fi
+          echo "Using icon source: $SRC"
+          for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
+            density="${spec%%:*}"
+            size="${spec##*:}"
+            mkdir -p android/app/src/main/res/mipmap-$density
+            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher.png
+            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher_round.png
+            convert "$SRC" -resize ${size}x${size} android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
+          done
+          mkdir -p android/app/src/main/res/drawable
+          cp "$SRC" android/app/src/main/res/drawable/ic_launcher.png || true
+
+      - name: Apply overlay
+        run: |
+          cp overlay/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/java/com/wavelord/whatweeating
+          cp overlay/*.java android/app/src/main/java/com/wavelord/whatweeating/ 2>/dev/null || true
+          cp *.java android/app/src/main/java/com/wavelord/whatweeating/ 2>/dev/null || true
+          ls -lh android/app/src/main/java/com/wavelord/whatweeating/
+
+      - name: Build Release APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: what-we-eating-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
