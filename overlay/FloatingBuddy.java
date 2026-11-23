@@ -1,5 +1,6 @@
 package com.wavelord.whatweeating;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -21,8 +22,6 @@ public class FloatingBuddy {
     private View menuView;
     private boolean isShowing = false;
     private boolean isExpanded = false;
-
-    // GLOBAL guard - even if Service makes a 2nd FloatingBuddy object, it can't make a 2nd bubble
     private static boolean globalBubbleShowing = false;
 
     public FloatingBuddy(Context context, WindowManager windowManager, WindowManager.LayoutParams params) {
@@ -34,14 +33,16 @@ public class FloatingBuddy {
     public void show() {
         if (isShowing) return;
         if (globalBubbleShowing) return;
-        bubbleView = makeBubble();
-        try {
-            windowManager.addView(bubbleView, params);
-        } catch (Exception e) {
-            return;
-        }
+        bubbleView = makeBurgerBubble();
+        try { windowManager.addView(bubbleView, params); } catch (Exception e) { return; }
         isShowing = true;
         globalBubbleShowing = true;
+        // Gentle bounce so it feels alive like the splash burger
+        ObjectAnimator bounce = ObjectAnimator.ofFloat(bubbleView, "translationY", 0f, -12f, 0f);
+        bounce.setDuration(900);
+        bounce.setRepeatCount(ObjectAnimator.INFINITE);
+        bounce.setRepeatMode(ObjectAnimator.REVERSE);
+        bounce.start();
     }
 
     public void hide() {
@@ -50,35 +51,35 @@ public class FloatingBuddy {
             if (isExpanded && menuView != null) windowManager.removeView(menuView);
             if (bubbleView != null) windowManager.removeView(bubbleView);
         } catch (Exception e) {}
-        bubbleView = null;
-        menuView = null;
-        isShowing = false;
-        isExpanded = false;
+        bubbleView = null; menuView = null;
+        isShowing = false; isExpanded = false;
         globalBubbleShowing = false;
     }
 
-    private View makeBubble() {
-        TextView bubble = new TextView(context);
-        bubble.setText("🍔");
-        bubble.setTextSize(30);
-        bubble.setGravity(Gravity.CENTER);
-        bubble.setBackgroundColor(Color.parseColor("#FF4D2E"));
-        bubble.setPadding(20, 20, 20, 20);
+    // Same layered burger as your splash: top bun / tomato / lettuce / cheese / patty / bottom bun
+    private View makeBurgerBubble() {
+        LinearLayout wrap = new LinearLayout(context);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setGravity(Gravity.CENTER);
+        wrap.setPadding(10, 10, 10, 10);
 
-        bubble.setOnTouchListener(new View.OnTouchListener() {
+        wrap.addView(layer("#F5C07A", 110, 34, 30, 30, 8, 8)); // top bun
+        wrap.addView(layer("#FF3B30", 92, 10, 0, 0, 0, 0));   // tomato
+        wrap.addView(layer("#7CFC9A", 104, 10, 0, 0, 0, 0));  // lettuce
+        wrap.addView(layer("#FFD477", 98, 10, 0, 0, 0, 0));    // cheese
+        wrap.addView(layer("#8A4A22", 96, 20, 0, 0, 0, 0));    // patty
+        wrap.addView(layer("#E8A04A", 104, 16, 0, 0, 8, 8));  // bottom bun
+
+        wrap.setOnTouchListener(new View.OnTouchListener() {
             private int lastX, lastY;
             private float downX, downY;
             private long downTime;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
+            @Override public boolean onTouch(View v, MotionEvent event) {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         downTime = System.currentTimeMillis();
-                        lastX = params.x;
-                        lastY = params.y;
-                        downX = event.getRawX();
-                        downY = event.getRawY();
+                        lastX = params.x; lastY = params.y;
+                        downX = event.getRawX(); downY = event.getRawY();
                         return true;
                     case MotionEvent.ACTION_MOVE:
                         params.x = lastX + (int) (event.getRawX() - downX);
@@ -96,13 +97,21 @@ public class FloatingBuddy {
                 return false;
             }
         });
-        return bubble;
+        return wrap;
     }
 
-    private void toggleMenu() {
-        if (isExpanded) collapse();
-        else expand();
+    private View layer(String color, int w, int h, int tl, int tr, int bl, int br) {
+        View v = new View(context);
+        v.setBackgroundColor(Color.parseColor(color));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(w), dp(h));
+        lp.gravity = Gravity.CENTER;
+        v.setLayoutParams(lp);
+        return v;
     }
+
+    private int dp(int v) { return (int) (v * context.getResources().getDisplayMetrics().density); }
+
+    private void toggleMenu() { if (isExpanded) collapse(); else expand(); }
 
     private void expand() {
         if (isExpanded) return;
@@ -110,34 +119,19 @@ public class FloatingBuddy {
         menu.setOrientation(LinearLayout.VERTICAL);
         menu.setBackgroundColor(Color.parseColor("#1A0F0D"));
         menu.setPadding(30, 30, 30, 30);
-
-        menu.addView(makeMenuButton("🤖 Ask AI - What We Eating?", new View.OnClickListener() {
-            @Override public void onClick(View v) { openApp(); collapse(); }
-        }));
-        menu.addView(makeMenuButton("🏠 Back To App", new View.OnClickListener() {
-            @Override public void onClick(View v) { openApp(); collapse(); }
-        }));
-        menu.addView(makeMenuButton("➖ Minimize To Bubble", new View.OnClickListener() {
-            @Override public void onClick(View v) { collapse(); }
-        }));
-        menu.addView(makeMenuButton("❌ Exit Buddy", new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                context.stopService(new Intent(context, FloatingBuddyService.class));
-            }
-        }));
+        menu.addView(makeMenuButton("🤖 Ask AI - What We Eating?", v -> { openApp(); collapse(); }));
+        menu.addView(makeMenuButton("🏠 Back To App", v -> { openApp(); collapse(); }));
+        menu.addView(makeMenuButton("➖ Minimize To Bubble", v -> collapse()));
+        menu.addView(makeMenuButton("❌ Exit Buddy", v -> context.stopService(new Intent(context, FloatingBuddyService.class))));
 
         WindowManager.LayoutParams menuParams = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
             params.type,
-            // THIS IS THE TAP FIX - menu must not eat taps outside itself
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        );
+            PixelFormat.TRANSLUCENT);
         menuParams.gravity = Gravity.TOP | Gravity.START;
         menuParams.x = params.x;
-        menuParams.y = params.y + 120;
-
+        menuParams.y = params.y + 140;
         menuView = menu;
         try { windowManager.addView(menuView, menuParams); } catch (Exception e) { return; }
         isExpanded = true;
@@ -146,17 +140,13 @@ public class FloatingBuddy {
     private void collapse() {
         if (!isExpanded) return;
         try { windowManager.removeView(menuView); } catch (Exception e) {}
-        menuView = null;
-        isExpanded = false;
+        menuView = null; isExpanded = false;
     }
 
     private TextView makeMenuButton(String text, View.OnClickListener click) {
         TextView btn = new TextView(context);
-        btn.setText(text);
-        btn.setTextSize(16);
-        btn.setTextColor(Color.WHITE);
-        btn.setPadding(20, 24, 20, 24);
-        btn.setOnClickListener(click);
+        btn.setText(text); btn.setTextSize(16); btn.setTextColor(Color.WHITE);
+        btn.setPadding(20, 24, 20, 24); btn.setOnClickListener(click);
         return btn;
     }
 
@@ -173,16 +163,14 @@ public class FloatingBuddy {
             ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             : WindowManager.LayoutParams.TYPE_PHONE;
         WindowManager.LayoutParams p = new WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
             type,
-            // Bubble must never steal focus / block app taps
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        );
-        p.gravity = Gravity.TOP | Gravity.START;
-        p.x = 0;
-        p.y = 300;
+            PixelFormat.TRANSLUCENT);
+        // BOTTOM-RIGHT, NOT top / centre - so it can NEVER sit on Tap To Eat / top button
+        p.gravity = Gravity.BOTTOM | Gravity.END;
+        p.x = 20;
+        p.y = 220;
         return p;
     }
 }
