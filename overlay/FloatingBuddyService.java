@@ -17,15 +17,15 @@ public class FloatingBuddyService extends Service {
     private FloatingBuddy buddy;
 
     @Override
-    public void onCreate() { // ✅ void, not int
+    public void onCreate() {
         super.onCreate();
         createNotificationChannel();
         startForeground(1, buildNotification());
 
         WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         WindowManager.LayoutParams params = FloatingBuddy.createParams();
-        buddy = new FloatingBuddy(this, wm, params); // ✅ 3 args, matches FloatingBuddy
-        buddy.show(); // ✅ exists
+        buddy = new FloatingBuddy(this, wm, params);
+        buddy.show();
     }
 
     private Notification buildNotification() {
@@ -54,7 +54,7 @@ public class FloatingBuddyService extends Service {
     public void onDestroy() {
         super.onDestroy();
         if (buddy != null) {
-            buddy.hide(); // ✅ exists
+            buddy.hide();
             buddy = null;
         }
     }
@@ -62,4 +62,4 @@ public class FloatingBuddyService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) { return null; }
-        }
+}
