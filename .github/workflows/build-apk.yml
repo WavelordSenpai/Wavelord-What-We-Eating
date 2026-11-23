@@ -97,11 +97,11 @@ jobs:
           ls -lh android/app/src/main/java/com/wavelord/whatweeating/
           grep -n "android:icon" android/app/src/main/AndroidManifest.xml || echo "WARNING: No android:icon in manifest"
 
-      - name: Build Release APK
+      - name: Build Debug APK - INSTALLABLE
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --stacktrace
+          ./gradlew assembleDebug --stacktrace
           echo "=== WHAT DID GRADLE ACTUALLY MAKE? ==="
           find app/build -name "*.apk" -ls
 
@@ -109,5 +109,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: what-we-eating-apk
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
