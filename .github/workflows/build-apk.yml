@@ -78,13 +78,16 @@ jobs:
           mkdir -p android/app/src/main/res/drawable
           cp "$SRC" android/app/src/main/res/drawable/ic_launcher.png || true
 
-      - name: Apply overlay
+      - name: Apply overlay - YOUR real layout
         run: |
-          cp overlay/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          ls -lh AndroidManifest.xml
+          ls -lh overlay/
+          cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/java/com/wavelord/whatweeating
-          cp overlay/*.java android/app/src/main/java/com/wavelord/whatweeating/ 2>/dev/null || true
-          cp *.java android/app/src/main/java/com/wavelord/whatweeating/ 2>/dev/null || true
+          cp overlay/*.java android/app/src/main/java/com/wavelord/whatweeating/
+          ls -lh android/app/src/main/AndroidManifest.xml
           ls -lh android/app/src/main/java/com/wavelord/whatweeating/
+          grep -n "android:icon" android/app/src/main/AndroidManifest.xml || echo "WARNING: No android:icon in manifest"
 
       - name: Build Release APK
         run: |
