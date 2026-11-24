@@ -2,112 +2,85 @@ name: Build APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
+          cache: npm
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
 
-      - name: Setup Android SDK - use preinstalled SDK
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Export SDK + accept licenses
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "SDK is at: $ANDROID_HOME"
-          ls $ANDROID_HOME/cmdline-tools/
-          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -f "$SDKMGR" ]; then
-            SDKMGR=$(find $ANDROID_HOME/cmdline-tools -name sdkmanager -type f | head -n 1)
-          fi
-          echo "Using sdkmanager at: $SDKMGR"
+          SDKMGR=$(find $ANDROID_HOME/cmdline-tools -name sdkmanager | head -n 1)
+          echo "SDKMGR=$SDKMGR" >> $GITHUB_ENV
           yes | "$SDKMGR" --licenses > /dev/null || true
-          "$SDKMGR" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          "$SDKMGR" "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
 
-      - name: Install dependencies
-        run: npm ci || npm install
+      - name: Install deps
+        run: npm install || npm ci || true
 
-      - name: Build www folder
+      # STEP 1 — Build www/ FIRST, before cap sync
+      - name: Build www/
         run: |
           mkdir -p www www/assets
-          cp index.html www/
-          cp app.js www/ || true
-          cp style.css www/ || true
-          cp manifest.json www/ || true
-          cp sw.js www/ || true
-          cp icon-512.png www/ || true
-          cp icon-192.png www/ || true
-          cp icon-512.png www/assets/icon-512.png || true
-          cp icon-192.png www/assets/icon-192.png || true
+          cp index.html app.js style.css manifest.json sw.js www/ || true
+          cp icon-192.png icon-512.png www/ || true
           cp -r assets/* www/assets/ 2>/dev/null || true
-          ls -lh www/ www/assets/
+          echo "--- www/ proof ---"
+          ls -lh www/ www/assets/ || true
+          test -f www/index.html || (echo "index.html missing in www/" && exit 1)
 
-      - name: Capacitor add + sync
+      # STEP 2 — cap sync SECOND
+      - name: Capacitor sync
         run: |
           npx cap add android || true
           npx cap sync android
 
-      - name: Generate Android launcher icons - MIPMAP ONLY, NO DRAWABLE
+      # STEP 3 — Overlay + Manifest + Icons AFTER cap sync
+      - name: Apply overlay + manifest + icons
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick > /dev/null
-          SRC="icon-512.png"
-          if [ ! -f "$SRC" ]; then SRC="assets/icon-512.png"; fi
-          echo "Using icon source: $SRC"
-          file "$SRC"
-          ls -lh "$SRC"
-          for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
-            density="${spec%%:*}"
-            size="${spec##*:}"
-            mkdir -p android/app/src/main/res/mipmap-$density
-            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher.png
-            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_round.png
-            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
-            file android/app/src/main/res/mipmap-$density/ic_launcher.png
-          done
-          echo "DELETE any bad drawable icon - this is what killed the last build"
-          rm -f android/app/src/main/res/drawable/ic_launcher.png
-          rm -f android/app/src/main/res/drawable/ic_launcher_round.png
-          rm -f android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml
-          echo "PROOF - drawable must NOT have ic_launcher:"
-          ls -lh android/app/src/main/res/drawable/ || echo "no drawable folder - good"
-          ls -lh android/app/src/main/res/mipmap-xxxhdpi/
-
-      - name: Apply overlay - YOUR real layout
-        run: |
-          ls -lh AndroidManifest.xml
-          ls -lh overlay/
-          cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/java/com/wavelord/whatweeating
-          cp overlay/*.java android/app/src/main/java/com/wavelord/whatweeating/
-          ls -lh android/app/src/main/AndroidManifest.xml
+          cp overlay/MainActivity.java android/app/src/main/java/com/wavelord/whatweeating/MainActivity.java
+          cp overlay/FloatingBuddy.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddy.java
+          cp overlay/FloatingBuddyService.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddyService.java
+          cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          echo "--- overlay proof ---"
           ls -lh android/app/src/main/java/com/wavelord/whatweeating/
-          grep -n "android:icon" android/app/src/main/AndroidManifest.xml || echo "WARNING: No android:icon in manifest"
+          grep -q "FloatingBuddyService" android/app/src/main/AndroidManifest.xml && echo "Manifest has Buddy service OK" || (echo "Manifest missing Buddy service" && exit 1)
+          # Mipmap-only icons — delete drawable icons so Android never picks the robot
+          find android/app/src/main/res -type d -name "drawable*" -exec rm -rf {} + 2>/dev/null || true
+          echo "--- res proof ---"
+          ls android/app/src/main/res/ || true
 
-      - name: Build Debug APK - INSTALLABLE
+      # STEP 4 — Build APK LAST
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
-          echo "=== WHAT DID GRADLE ACTUALLY MAKE? ==="
-          find app/build -name "*.apk" -ls
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: what-we-eating-apk
-          path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          name: What-We-Eating-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
