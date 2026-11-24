@@ -1,19 +1,20 @@
 {
   "name": "what-we-eating",
-  "version": "1.0.0",
-  "description": "What We Eating? by Wavelord - Family food finder for Trinidad & Tobago",
+  "version": "3.0.0",
   "private": true,
-  "type": "commonjs",
   "scripts": {
-    "build": "echo \"No build step - static PWA\"",
-    "sync": "npx cap sync"
+    "sync": "npx cap sync android",
+    "build": "mkdir -p www && cp index.html app.js style.css manifest.json sw.js www/ && npx cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",
-    "@capacitor/cli": "^6.0.0",
-    "@capacitor/core": "^6.0.0"
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/keyboard": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.5.0"
+    "@capacitor/cli": "^6.0.0"
   }
 }
