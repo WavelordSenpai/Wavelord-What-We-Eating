@@ -1,12 +1,12 @@
 {
-  "name": "What We Eating? by Wavelord",
+  "name": "What We Eating?",
   "short_name": "What We Eating?",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#0f0f12",
-  "theme_color": "#ff4d2e",
+  "background_color": "#121212",
+  "theme_color": "#121212",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
