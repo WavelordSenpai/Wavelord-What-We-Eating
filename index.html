@@ -1,216 +1,123 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>What We Eating? by Wavelord</title>
-<meta name="theme-color" content="#ff4d2e">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>What We Eating?</title>
+<meta name="theme-color" content="#121212">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="appShell">
-
-<!-- SPLASH -->
-<div id="splash" data-act="skipSplash">
-<button id="skipSplash" data-act="skipSplash">Skip ›</button>
-<div class="stage">
-<div class="layer b-bot"></div>
-<div class="layer b-pat"></div>
-<div class="layer b-che"></div>
-<div class="layer b-let"></div>
-<div class="layer b-tom"></div>
-<div class="layer b-top"></div>
-<div class="steam"><i></i><i></i><i></i></div>
-</div>
-<div id="splashTitle">WHAT WE<br>EATING?</div>
-<div class="by">BY WAVELORD</div>
-<button id="tapEat" data-act="skipSplash">TAP TO EAT 🍔</button>
-</div>
-
-<!-- ONBOARD -->
-<div id="onboard">
-<div class="em" id="obEm">🔍</div>
-<h2 id="obH">Search what yuh feeling for</h2>
-<p id="obP"></p>
-<button class="primary big" id="obBtn" data-act="obNext" style="max-width:320px">Next</button>
-<button class="ghost" data-act="obSkip">Skip</button>
-</div>
-
-<header id="top">
-<div class="hrow">
-<div><h1>🍔 What We Eating?</h1><p>by <b>Wavelord</b> • Trinidad &amp; Tobago food lime finder</p></div>
-<div style="display:flex;gap:6px">
-<button class="icon" data-act="go" data-v="favs" aria-label="Favourites">❤️</button>
-<button class="icon" data-act="roulette" aria-label="Roulette">🎲</button>
-<button class="icon" id="minimizeBtn" data-act="minimizeToBubble" aria-label="Minimize to Buddy">🍔</button>
-</div>
-</div>
-<div class="saved" id="savedLine"></div>
+<header id="topbar">
+  <h1>🍔 What We Eating?</h1>
+  <button data-bigtext onclick="toggleBigText()">🔍 Big Text</button>
 </header>
 
-<main class="wrap">
+<nav id="tabs">
+  <button data-tab="browse" class="active" onclick="go('browse')">🔍 Browse</button>
+  <button data-tab="vote" onclick="go('vote')">🗳️ Vote</button>
+  <button data-tab="add" data-admin-only onclick="go('add')">➕ Add</button>
+  <button data-tab="settings" onclick="go('settings')">⚙️ Settings</button>
+  <button onclick="document.getElementById('reportModal').style.display='block'">🐛 Report</button>
+</nav>
 
-<!-- HOME -->
-<section id="v-home" class="view active">
-<div id="rememberBox"></div>
-<div class="sec" style="margin-top:0">
-<input id="vQ" type="search" placeholder="Wah yuh feeling for? beef, roti, doubles, pizza…" autocomplete="off">
-<div class="chips" id="chips"></div>
-<div class="row filterRow">
-<select id="fArea"></select>
-<select id="fPrice"><option value="">Any price</option><option value="1">$ Cheap</option><option value="2">$$ Mid</option><option value="3">$$$ Fancy</option></select>
-<select id="fSort"><option value="rec">Recommended</option><option value="rating">Top Rated</option><option value="low">Low Price</option><option value="near">Nearest</option></select>
-</div>
-<div class="chips">
-<button class="chip" id="nearMeBtn" data-act="nearMe">📍 Near me</button>
-<button class="chip" data-act="voiceSearch">🎤 Voice</button>
-<button class="chip" data-act="clearFilters">✕ Clear filters</button>
-</div>
-<p id="homeCount" class="mut" style="margin-top:8px"></p>
-</div>
-<div id="specialsSec"></div>
-<div class="sec" id="forYou"></div>
-<div class="sec">
-<div class="secHead"><h2>⚖️ Compare before yuh spend</h2><button class="sm primary" data-act="go" data-v="compare">Compare</button></div>
-<p class="sub">Pick a craving + area and see the best value spots in a table.</p>
-</div>
-<div id="trendSec"></div>
-<div id="top10Sec"></div>
-<div id="homeList"></div>
-</section>
+<main>
+  <section id="view-browse" class="view active">
+    <div id="filters">
+      <input id="fSearch" placeholder="Search food, spot..." oninput="renderSpots()">
+      <select id="fPrice" onchange="renderSpots()">
+        <option value="">Any Price</option>
+        <option value="0-50">Under $50</option>
+        <option value="50-100">$50 - $100</option>
+        <option value="100-200">$100 - $200</option>
+        <option value="200-9999">Over $200</option>
+      </select>
+      <select id="fType" onchange="renderSpots()">
+        <option value="">All Types</option>
+        <option value="Doubles">Doubles</option>
+        <option value="Ramen">Ramen</option>
+        <option value="Pizza">Pizza</option>
+        <option value="Burgers">Burgers</option>
+        <option value="Chinese">Chinese</option>
+      </select>
+      <button onclick="nearMe()">📍 Near Me</button>
+      <button onclick="clearFilters()">Clear</button>
+    </div>
+    <div id="spots"></div>
+  </section>
 
-<!-- BROWSE -->
-<section id="v-browse" class="view">
-<div class="sec"><h2>Browse Menu</h2><p class="sub">All spots + photos. Tap a photo to open it fullscreen.</p></div>
-<div id="browseList"></div>
-</section>
+  <section id="view-vote" class="view">
+    <h2>🗳️ Family Vote</h2>
+    <input id="voteQ" placeholder="Question: What we eating tonight?">
+    <div id="voteOpts">
+      <input class="voteOpt" placeholder="Option 1">
+      <input class="voteOpt" placeholder="Option 2">
+      <input class="voteOpt" placeholder="Option 3">
+    </div>
+    <button class="primary" onclick="createVote()">Start Vote</button>
+    <button onclick="shareVote()">🔗 Share Vote</button>
+    <div id="voteResults"></div>
+  </section>
 
-<!-- COMPARE -->
-<section id="v-compare" class="view">
-<div class="sec"><h2>⚖️ Compare</h2>
-<div class="row"><select id="cCraving"></select><select id="cArea"></select></div>
-<button class="primary" data-act="doCompare" style="margin-top:10px;width:100%">Compare Now</button>
-</div>
-<div id="compareOut"></div>
-</section>
+  <section id="view-add" class="view">
+    <h2>➕ Add Spot (Admin)</h2>
+    <input id="aName" placeholder="Spot name - e.g. Golden Bell Express">
+    <input id="aArea" placeholder="Area - e.g. Chaguanas">
+    <input id="aType" placeholder="Type - e.g. Ramen">
+    <input id="aPhone" placeholder="Phone">
+    <textarea id="aMenu" rows="8" placeholder="Menu - one per line:&#10;Original Ramyun - $51&#10;Chicken Ramen - $67"></textarea>
+    <div style="display:flex; gap:8px;">
+      <button onclick="document.getElementById('scanInput').click()">📸 Take Photo</button>
+      <button onclick="document.getElementById('scanInputUpload').click()">📁 Upload Photo</button>
+      <input type="file" id="scanInput" accept="image/*" capture="environment" style="display:none" onchange="handleScanFile(this)">
+      <input type="file" id="scanInputUpload" accept="image/*" style="display:none" onchange="handleScanFile(this)">
+    </div>
+    <button class="primary" onclick="saveSpot()">💾 Save Spot</button>
+    <div id="addMsg"></div>
+  </section>
 
-<!-- TOP 10 -->
-<section id="v-top10" class="view">
-<div class="sec"><h2>🏆 Top 10</h2></div>
-<div id="top10Out"></div>
-</section>
+  <section id="view-settings" class="view">
+    <h2>⚙️ Settings</h2>
+    <label>Admin PIN</label>
+    <input id="adminPin" type="password" inputmode="numeric" autocomplete="off" placeholder="Admin PIN">
+    <button onclick="tryAdmin()">Unlock Admin</button>
+    <button data-admin-only onclick="exportBackup()">📤 Export Backup</button>
+    <button data-admin-only onclick="clearAll()">🗑️ Clear All (Admin)</button>
+    <p style="opacity:0.6; font-size:13px;">Spots are saved on this phone + Netlify. Prices in TT$.</p>
+    <p style="opacity:0.6; font-size:13px;">Buddy uses GPT-OSS on Groq. Report goes to vireshsingh26@protonmail.com</p>
+  </section>
 
-<!-- VOTE -->
-<section id="v-vote" class="view">
-<div class="sec"><h2>🗳️ Family Vote</h2>
-<p class="sub">1 vote per person. Share the link — family sees the SAME vote.</p>
-<input id="vTitle" placeholder="Vote title e.g. Sunday vibes">
-<input id="vOpt" placeholder="Options comma separated e.g. KFC, doubles, pizza" style="margin-top:8px">
-<button class="primary" data-act="createVote" style="margin-top:8px;width:100%">Create Vote — Replaces Old One</button>
-<div class="row" style="margin-top:8px">
-<button class="chip" data-act="shareVote" style="flex:1">🔗 Share Vote Link</button>
-<button class="chip" data-act="clearAllVotes" style="flex:1">🗑️ Clear / Start New</button>
-</div>
-<label class="mut" style="display:block;margin-top:12px">Share this link:</label>
-<div class="row" style="margin-top:6px">
-<input id="voteLinkInput" readonly placeholder="Create a vote to get a share link">
-<button class="primary sm" data-act="copyVoteLink" style="flex:0 0 auto">Copy</button>
-</div>
-</div>
-<div id="voteOut"></div>
-</section>
-
-<!-- FAVS -->
-<section id="v-favs" class="view">
-<div class="sec"><h2>❤️ Favourites</h2></div>
-<div id="favOut"></div>
-</section>
-
-<!-- ADD -->
-<section id="v-add" class="view">
-<div class="sec"><h2 id="addTitle">➕ Add / Edit Spot <span style="font-size:.7rem;background:#ff4d2e;padding:3px 8px;border-radius:999px">ADMIN ONLY</span></h2>
-<p id="editBanner" class="mut" style="display:none;margin-top:6px"></p>
-<form id="addForm">
-<input id="fName" placeholder="Spot name">
-<input id="fArea2" placeholder="Area e.g. San Juan" style="margin-top:8px">
-<input id="fPhone" placeholder="Phone (optional)" style="margin-top:8px">
-<div id="menuRows" style="margin-top:8px"></div>
-<button type="button" class="chip" data-act="addMenuRow" style="margin-top:8px">+ Add menu item</button>
-<textarea id="aMenu" rows="4" placeholder="Or paste menu here — one per line: Beef Burger - $85" style="margin-top:8px"></textarea>
-<div class="chips">
-<button type="button" class="chip" data-act="pasteMenu">📋 Paste Menu</button>
-<button type="button" class="chip" data-act="scanCamera">📸 Take Photo (Camera)</button>
-<button type="button" class="chip" data-act="scanUpload">📁 Upload Photo</button>
-<button type="button" class="chip" data-act="voiceMenu">🎤 Voice Menu</button>
-</div>
-<input type="file" id="scanInputCamera" accept="image/*" capture="environment" style="display:none">
-<input type="file" id="scanInputUpload" accept="image/*" style="display:none">
-<p id="scanStatus" class="mut" style="margin-top:8px"></p>
-<label style="display:block;margin-top:10px">Photos <input type="file" id="aPhotos" accept="image/*" multiple></label>
-<div class="photoRow" id="aPhotoPrev"></div>
-<button class="primary" id="saveSpotBtn" data-act="saveSpot" style="margin-top:10px;width:100%">Save Spot</button>
-<button type="button" class="chip" id="cancelEditBtn" data-act="cancelEdit" style="margin-top:8px;width:100%;display:none">✕ Cancel Edit — Back to Add New</button>
-</form>
-</div>
-</section>
-
-<!-- SETTINGS -->
-<section id="v-settings" class="view">
-<div class="sec"><h2>⚙️ Settings</h2>
-<div class="chips">
-<button class="chip" data-act="bigText">🔎 Big Text</button>
-<button class="chip" data-act="tutorial">📖 Tutorial</button>
-<button class="chip" data-act="backup">💾 Backup</button>
-<button class="chip" data-act="restore">📥 Restore</button>
-<button class="chip" data-act="report">🐛 Report Problem</button>
-</div>
-<p class="sub" style="margin-top:10px">Version 3.0 — Rebuild • by Wavelord</p>
-</div>
-<div class="sec"><h2>Claim / Admin</h2>
-<input id="adminPin" placeholder="Admin PIN" inputmode="numeric">
-<button class="primary" data-act="adminLogin" style="margin-top:8px;width:100%">Unlock Admin</button>
-<button class="chip" data-act="adminLogout" style="margin-top:8px;width:100%">🔒 Lock Admin / Hide Add</button>
-<div id="adminOut"></div>
-</div>
-<div class="sec"><h2>🍔 Wave Buddy</h2>
-<p class="sub">In APK: tap 🍔 in header to minimize into floating bubble. Tap bubble → Return to App / Talk to AI / Exit App.</p>
-<div class="chips">
-<button class="chip" data-act="openBuddy">💬 Open Buddy Chat</button>
-<button class="chip" data-act="minimizeToBubble">⬇️ Minimize to Bubble (APK)</button>
-</div>
-</div>
-</section>
-
+  <section id="view-spot" class="view">
+    <button onclick="go('browse')">← Back</button>
+    <div id="spotDetail"></div>
+  </section>
 </main>
 
-<nav id="nav">
-<button data-act="go" data-v="home"><span>🏠</span>Home</button>
-<button data-act="go" data-v="browse"><span>🍔</span>Browse</button>
-<button data-act="go" data-v="compare"><span>⚖️</span>Compare</button>
-<button data-act="go" data-v="vote"><span>🗳️</span>Vote</button>
-<button data-act="go" data-v="add"><span>➕</span>Add</button>
-<button data-act="go" data-v="settings"><span>⚙️</span>Settings</button>
-</nav>
+<button id="buddyFab" onclick="toggleBuddy()">🍔 Buddy</button>
+
+<div id="buddyPanel" style="display:none;">
+  <div id="buddyHeader">🍔 Wave Buddy <button onclick="toggleBuddy()">✕</button></div>
+  <div id="buddyMsgs"></div>
+  <div id="buddyInputRow">
+    <input id="buddyInput" placeholder="Ask Buddy... what we eating?" onkeydown="if(event.key==='Enter') sendBuddy()">
+    <button onclick="sendBuddy()">Send</button>
+  </div>
+  <div id="buddyStatus"></div>
 </div>
 
-<!-- BUDDY CHAT — inside app, NOT a second bubble -->
-<div id="buddyPanel">
-<div class="buddyHead"><b>🍔 Wave Buddy</b><div><button class="chip" data-act="buddyMinimize">⬇️ Bubble</button><button class="chip" data-act="buddyClose">✕</button></div></div>
-<div id="buddyMsgs"></div>
-<div class="buddyInput"><input id="buddyText" placeholder="Ask me anything — food or anything else..."><button class="primary" data-act="buddySend" style="width:auto">Send</button><button class="chip" data-act="buddyVoice">🎤</button></div>
+<div id="reportModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:999; padding:20px;">
+  <div style="background:#1a1a1a; border-radius:16px; padding:20px; max-width:500px; margin:40px auto;">
+    <h2>🐛 Report Problem</h2>
+    <p>Screenshot + tell us what happened. It sends to vireshsingh26@protonmail.com</p>
+    <textarea id="reportText" rows="5" style="width:100%; background:#222; color:#fff; border-radius:12px; padding:12px;" placeholder="What broke? What were you tapping?"></textarea>
+    <button onclick="sendReport()" style="width:100%; background:#c00; color:#fff; padding:14px; border:none; border-radius:12px; margin-top:12px; font-weight:bold;">📧 Send Report to Wavelord</button>
+    <button onclick="document.getElementById('reportModal').style.display='none'" style="width:100%; background:#333; color:#fff; padding:12px; border:none; border-radius:12px; margin-top:8px;">Close</button>
+  </div>
 </div>
-<button id="buddyFab" data-act="openBuddy">🍔</button>
 
-<div class="modal" id="modal"><div class="sheet" id="modalBody"></div></div>
-<div id="lightbox"><img id="lightboxImg"><div style="display:flex;gap:10px;margin-top:14px;align-items:center;flex-wrap:wrap;justify-content:center"><button class="primary" data-act="lbPrev">‹ Prev</button><span id="lbCount" style="color:#fff"></span><button class="primary" data-act="lbNext">Next ›</button><button class="primary" data-act="lbClose" style="background:#333">✕ Close</button></div></div>
-<div class="toast" id="toast"></div>
 <script src="app.js"></script>
 </body>
-  </html>
+    </html>
