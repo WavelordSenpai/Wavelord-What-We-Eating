@@ -57,7 +57,38 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      - name: Apply overlay + manifest + icons
+      # NO convert / NO ImageMagick - use Python Pillow which is already on runner
+      - name: Make Android icons - Python, not convert
+        run: |
+          python3 -c "
+          from PIL import Image
+          import os
+          src = 'assets/icon-512.png'
+          if not os.path.exists(src):
+              src = 'icon-512.png'
+          print('Using icon:', src)
+          img = Image.open(src).convert('RGBA')
+          # Android launcher sizes
+          sizes = {
+              'mipmap-mdpi': 48,
+              'mipmap-hdpi': 72,
+              'mipmap-xhdpi': 96,
+              'mipmap-xxhdpi': 144,
+              'mipmap-xxxhdpi': 192,
+          }
+          base = 'android/app/src/main/res'
+          for folder, size in sizes.items():
+              d = os.path.join(base, folder)
+              os.makedirs(d, exist_ok=True)
+              out = os.path.join(d, 'ic_launcher.png')
+              img.resize((size, size), Image.LANCZOS).save(out)
+              # round icon = same file
+              img.resize((size, size), Image.LANCZOS).save(os.path.join(d, 'ic_launcher_round.png'))
+              print('Made', out)
+          print('Icons done - no convert needed')
+          "
+
+      - name: Apply overlay + manifest
         run: |
           mkdir -p android/app/src/main/java/com/wavelord/whatweeating
           cp overlay/MainActivity.java android/app/src/main/java/com/wavelord/whatweeating/MainActivity.java
@@ -65,7 +96,6 @@ jobs:
           cp overlay/FloatingBuddyService.java android/app/src/main/java/com/wavelord/whatweeating/FloatingBuddyService.java
           cp AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           grep -q "FloatingBuddyService" android/app/src/main/AndroidManifest.xml && echo "Manifest has Buddy service OK" || (echo "Manifest missing Buddy service" && exit 1)
-          find android/app/src/main/res -type d -name "drawable*" -exec rm -rf {} + 2>/dev/null || true
 
       - name: Build APK
         run: |
