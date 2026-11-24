@@ -15,49 +15,69 @@ jobs:
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: '20'
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Export SDK + accept licenses
+      - name: Setup Android SDK - use preinstalled SDK
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-          SDKMGR=$(find $ANDROID_HOME/cmdline-tools -name sdkmanager | head -n 1)
-          echo "SDKMGR=$SDKMGR" >> $GITHUB_ENV
+          echo "SDK is at: $ANDROID_HOME"
+          SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -f "$SDKMGR" ]; then
+            SDKMGR=$(find $ANDROID_HOME/cmdline-tools -name sdkmanager -type f | head -n 1)
+          fi
+          echo "Using sdkmanager at: $SDKMGR"
           yes | "$SDKMGR" --licenses > /dev/null || true
-          "$SDKMGR" "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
+          "$SDKMGR" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" || true
 
-      - name: Install deps
-        run: npm install || npm ci || true
+      - name: Install dependencies
+        run: npm ci || npm install
 
-      # STEP 1 — Build www/ FIRST, before cap sync
-      - name: Build www/
+      - name: Build www - BEFORE cap sync
         run: |
           mkdir -p www www/assets
           cp index.html app.js style.css manifest.json sw.js www/ || true
-          cp icon-192.png icon-512.png www/ || true
+          cp icon-192.png icon-512.png www/ 2>/dev/null || true
+          cp assets/icon-192.png assets/icon-512.png www/ 2>/dev/null || true
           cp -r assets/* www/assets/ 2>/dev/null || true
           echo "--- www/ proof ---"
           ls -lh www/ www/assets/ || true
           test -f www/index.html || (echo "index.html missing in www/" && exit 1)
 
-      # STEP 2 — cap sync SECOND
       - name: Capacitor sync
         run: |
           npx cap add android || true
           npx cap sync android
 
-      # STEP 3 — Overlay + Manifest + Icons AFTER cap sync
-      - name: Apply overlay + manifest + icons
+      - name: Generate launcher icons - MIPMAP ONLY, NO DRAWABLE
+        run: |
+          SRC="icon-512.png"
+          if [ ! -f "$SRC" ]; then SRC="assets/icon-512.png"; fi
+          echo "Using icon source: $SRC"
+          ls -lh "$SRC"
+          file "$SRC"
+          for spec in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
+            density="${spec%%:*}"
+            size="${spec##*:}"
+            mkdir -p android/app/src/main/res/mipmap-$density
+            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher.png
+            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_round.png
+            convert "$SRC" -strip -resize ${size}x${size} -define png:format=png32 android/app/src/main/res/mipmap-$density/ic_launcher_foreground.png
+          done
+          echo "--- delete any drawable icons ---"
+          rm -f android/app/src/main/res/drawable/ic_launcher.png android/app/src/main/res/drawable/ic_launcher_round.png android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml || true
+          find android/app/src/main/res -type d -name "drawable*" -exec rm -rf {} + 2>/dev/null || true
+          echo "--- mipmap proof ---"
+          ls -lh android/app/src/main/res/mipmap-xxxhdpi/ || true
+          ls android/app/src/main/res/ || true
+
+      - name: Apply overlay - AFTER cap sync + icons
         run: |
           mkdir -p android/app/src/main/java/com/wavelord/whatweeating
           cp overlay/MainActivity.java android/app/src/main/java/com/wavelord/whatweeating/MainActivity.java
@@ -67,13 +87,9 @@ jobs:
           echo "--- overlay proof ---"
           ls -lh android/app/src/main/java/com/wavelord/whatweeating/
           grep -q "FloatingBuddyService" android/app/src/main/AndroidManifest.xml && echo "Manifest has Buddy service OK" || (echo "Manifest missing Buddy service" && exit 1)
-          # Mipmap-only icons — delete drawable icons so Android never picks the robot
-          find android/app/src/main/res -type d -name "drawable*" -exec rm -rf {} + 2>/dev/null || true
-          echo "--- res proof ---"
-          ls android/app/src/main/res/ || true
+          grep -q 'android:icon="@mipmap/ic_launcher"' android/app/src/main/AndroidManifest.xml && echo "Manifest icon OK" || echo "WARNING: Manifest icon not mipmap"
 
-      # STEP 4 — Build APK LAST
-      - name: Build APK
+      - name: Build APK - LAST, Debug = installable
         run: |
           cd android
           chmod +x gradlew
